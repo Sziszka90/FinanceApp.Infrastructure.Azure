@@ -1,1 +1,1 @@
-# FinanceApp.AzureInfrastructure
+# FinanceApp.Infrastructure.Azure
