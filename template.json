@@ -321,7 +321,6 @@
             "ingress": {
               "external": false,
               "targetPort": 6379,
-              "exposedPort": 6379,
               "transport": "Tcp",
               "traffic": [
                 {
@@ -334,7 +333,6 @@
                 "affinity": "none"
               }
             },
-            "identitySettings": [],
             "maxInactiveRevisions": 100
         },
         "template": {
@@ -342,7 +340,6 @@
             {
               "name": "[variables('containerAppCacheName')]",
               "image": "docker.io/redis:latest",
-              "imageType": "ContainerImage",
               "resources": {
                 "cpu": 0.5,
                 "memory": "1Gi"
@@ -384,7 +381,6 @@
           "ingress": {
             "external": true,
             "targetPort": 15672,
-            "exposedPort": 0,
             "transport": "Auto",
             "traffic": [
               {
@@ -392,27 +388,14 @@
                 "latestRevision": true
               }
             ],
-            "allowInsecure": false,
-            "clientCertificateMode": "Ignore",
-            "stickySessions": {
-              "affinity": "none"
-            },
-            "additionalPortMappings": [
-              {
-                "external": false,
-                "targetPort": 5672,
-                "exposedPort": 5672
-              }
-            ]
+            "allowInsecure": false
           },
-          "identitySettings": [],
           "maxInactiveRevisions": 100
         },
         "template": {
           "containers": [
             {
               "name": "[variables('containerAppRabbitMQName')]",
-              "imageType": "ContainerImage",
               "image": "docker.io/rabbitmq:3-management",
               "env": [
                 {
@@ -645,8 +628,8 @@
       "properties": {
         "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
         "workloadProfileName": "Consumption",
-        "activeRevisionsMode": "Single",
         "configuration": {
+          "activeRevisionsMode": "Single",
           "ingress": {
             "external": true,
             "targetPort": 80,
