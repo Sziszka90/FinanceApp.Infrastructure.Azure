@@ -12,7 +12,7 @@
     },
     "location": {
       "type": "string",
-      "defaultValue": "Poland Central",
+      "defaultValue": "polandcentral",
       "metadata": {
         "description": "Location for all resources"
       }
@@ -186,21 +186,21 @@
     "logAnalyticsWorkspaceName": "[concat(variables('resourcePrefix'), '-logs')]",
     "sqlServerName": "projects-server-sziszka90",
     "sqlDatabaseName": "FinanceAppDB",
-    
+
     "containerAppBackendName": "[concat(variables('resourcePrefix'), '-backend')]",
     "containerAppFrontendName": "[concat(variables('resourcePrefix'), '-frontend')]",
     "containerAppLLMProcessorName": "[concat(variables('resourcePrefix'), '-llmprocessor')]",
     "containerAppRabbitMQName": "[concat(variables('resourcePrefix'), '-rabbitmq')]",
     "containerAppCacheName": "[concat(variables('resourcePrefix'), '-cache')]",
     "containerAppGatewayName": "[concat(variables('resourcePrefix'), '-gateway')]",
-    
+
     "sqlConnectionString": "[concat('Server=tcp:', variables('sqlServerName'), '.database.windows.net,1433;Initial Catalog=', variables('sqlDatabaseName'), ';Persist Security Info=False;User ID=', parameters('sqlAdministratorLogin'), ';Password=', parameters('sqlAdministratorPassword'), ';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;')]",
     "cacheConnectionString": "[concat(variables('containerAppCacheName'), ':6379,user=financeappuser,password=', parameters('redisPassword'))]"
   },
   "resources": [
     {
       "type": "Microsoft.OperationalInsights/workspaces",
-      "apiVersion": "2025-02-01",
+      "apiVersion": "2025-02-02-preview",
       "name": "[variables('logAnalyticsWorkspaceName')]",
       "location": "[parameters('location')]",
       "properties": {
@@ -262,7 +262,7 @@
     },
     {
       "type": "Microsoft.Sql/servers",
-      "apiVersion": "2023-08-01-preview",
+      "apiVersion": "2025-02-02-preview",
       "name": "[variables('sqlServerName')]",
       "location": "[parameters('location')]",
       "kind": "v12.0",
@@ -277,7 +277,7 @@
     },
     {
       "type": "Microsoft.Sql/servers/databases",
-      "apiVersion": "2024-05-01-preview",
+      "apiVersion": "2025-02-02-preview",
       "name": "[concat(variables('sqlServerName'), '/', variables('sqlDatabaseName'))]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -307,7 +307,7 @@
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2024-03-01",
+      "apiVersion": "2025-02-02-preview",
       "name": "[variables('containerAppCacheName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -317,22 +317,22 @@
         "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
         "workloadProfileName": "Consumption",
         "configuration": {
-            "activeRevisionsMode": "Single",
-            "ingress": {
-              "external": false,
-              "targetPort": 6379,
-              "transport": "Tcp",
-              "traffic": [
-                {
-                  "weight": 100,
-                  "latestRevision": true
-                }
-              ],
-              "allowInsecure": false,
-              "stickySessions": {
-                "affinity": "none"
+          "activeRevisionsMode": "Single",
+          "ingress": {
+            "external": false,
+            "targetPort": 6379,
+            "transport": "Tcp",
+            "traffic": [
+              {
+                "weight": 100,
+                "latestRevision": true
               }
+            ],
+            "allowInsecure": false,
+            "stickySessions": {
+              "affinity": "none"
             }
+          }
         },
         "template": {
           "containers": [
@@ -367,7 +367,7 @@
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2024-03-01",
+      "apiVersion": "2025-02-02-preview",
       "name": "[variables('containerAppRabbitMQName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -379,15 +379,9 @@
         "configuration": {
           "activeRevisionsMode": "Single",
           "ingress": {
-            "external": true,
-            "targetPort": 15672,
-            "transport": "Auto",
-            "traffic": [
-              {
-                "weight": 100,
-                "latestRevision": true
-              }
-            ],
+            "external": false,
+            "targetPort": 5672,
+            "transport": "tcp",
             "allowInsecure": false
           }
         },
@@ -440,7 +434,7 @@
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2024-03-01",
+      "apiVersion": "2025-02-02-preview",
       "name": "[variables('containerAppBackendName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -620,7 +614,7 @@
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2024-03-01",
+      "apiVersion": "2025-02-02-preview",
       "name": "[variables('containerAppFrontendName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -684,7 +678,7 @@
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2024-03-01",
+      "apiVersion": "2025-02-02-preview",
       "name": "[variables('containerAppLLMProcessorName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -692,6 +686,10 @@
         "[resourceId('Microsoft.App/containerApps', variables('containerAppRabbitMQName'))]",
         "[resourceId('Microsoft.Sql/servers/databases', variables('sqlServerName'), variables('sqlDatabaseName'))]"
       ],
+      "kind": "containerapps",
+      "identity": {
+        "type": "None"
+      },
       "properties": {
         "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
         "workloadProfileName": "Consumption",
@@ -799,7 +797,7 @@
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2024-03-01",
+      "apiVersion": "2025-02-02-preview",
       "name": "[variables('containerAppGatewayName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -869,27 +867,23 @@
     },
     "sqlServerFqdn": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName')), '2023-08-01-preview').fullyQualifiedDomainName]"
+      "value": "[reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName')), '2025-02-02-preview').fullyQualifiedDomainName]"
     },
     "frontendUrl": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppFrontendName')), '2024-03-01').configuration.ingress.fqdn]"
+      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppFrontendName')), '2025-02-02-preview').configuration.ingress.fqdn]"
     },
     "backendUrl": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppBackendName')), '2024-03-01').configuration.ingress.fqdn]"
+      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppBackendName')), '2025-02-02-preview').configuration.ingress.fqdn]"
     },
     "llmProcessorUrl": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppLLMProcessorName')), '2024-03-01').configuration.ingress.fqdn]"
-    },
-    "rabbitmqUrl": {
-      "type": "string",
-      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppRabbitMQName')), '2024-03-01').configuration.ingress.fqdn]"
+      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppLLMProcessorName')), '2025-02-02-preview').configuration.ingress.fqdn]"
     },
     "gatewayUrl": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppGatewayName')), '2024-03-01').configuration.ingress.fqdn]"
+      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppGatewayName')), '2025-02-02-preview').configuration.ingress.fqdn]"
     }
   }
 }
