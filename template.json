@@ -307,16 +307,12 @@
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2025-02-02-preview",
+      "apiVersion": "2024-03-01",
       "name": "[variables('containerAppCacheName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
         "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]"
       ],
-      "kind": "containerapps",
-      "identity": {
-        "type": "None"
-      },
       "properties": {
         "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
         "workloadProfileName": "Consumption",
@@ -461,7 +457,7 @@
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2025-02-02-preview",
+      "apiVersion": "2024-03-01",
       "name": "[variables('containerAppBackendName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -639,7 +635,7 @@
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2025-02-02-preview",
+      "apiVersion": "2024-03-01",
       "name": "[variables('containerAppFrontendName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -702,7 +698,7 @@
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2025-02-02-preview",
+      "apiVersion": "2024-03-01",
       "name": "[variables('containerAppLLMProcessorName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
