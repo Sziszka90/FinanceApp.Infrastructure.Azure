@@ -411,7 +411,7 @@
           },
           "identitySettings": [],
           "maxInactiveRevisions": 100
-      },
+        },
         "template": {
           "containers": [
             {
