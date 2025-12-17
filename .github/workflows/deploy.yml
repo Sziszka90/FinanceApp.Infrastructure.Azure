@@ -1,0 +1,127 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      backend_image_tag:
+        description: "Backend image tag"
+        required: false
+        default: "latest"
+      frontend_image_tag:
+        description: "Frontend image tag"
+        required: false
+        default: "latest"
+      llm_processor_image_tag:
+        description: "LLM Processor image tag"
+        required: false
+        default: "latest"
+      gateway_image_tag:
+        description: "Gateway image tag"
+        required: false
+        default: "latest"
+
+env:
+  RESOURCE_GROUP: projects
+  LOCATION: polandcentral
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Create parameters file
+        run: |
+          cat > parameters.generated.json << EOF
+          {
+            "\$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+            "contentVersion": "1.0.0.0",
+            "parameters": {
+              "environment": {
+                "value": "production"
+              },
+              "location": {
+                "value": "${{ env.LOCATION }}"
+              },
+              "sqlAdministratorLogin": {
+                "value": "${{ secrets.SQL_ADMIN_LOGIN }}"
+              },
+              "sqlAdministratorPassword": {
+                "value": "${{ secrets.SQL_ADMIN_PASSWORD }}"
+              },
+              "containerRegistryServer": {
+                "value": "ghcr.io"
+              },
+              "containerRegistryUsername": {
+                "value": "${{ secrets.GHCR_USERNAME }}"
+              },
+              "containerRegistryPassword": {
+                "value": "${{ secrets.GHCR_TOKEN }}"
+              },
+              "openAiApiKey": {
+                "value": "${{ secrets.OPENAI_API_KEY }}"
+              },
+              "authenticationSecretKey": {
+                "value": "${{ secrets.AUTH_SECRET_KEY }}"
+              },
+              "smtpUser": {
+                "value": "${{ secrets.SMTP_USER }}"
+              },
+              "smtpPassword": {
+                "value": "${{ secrets.SMTP_PASSWORD }}"
+              },
+              "smtpFromEmail": {
+                "value": "${{ secrets.SMTP_FROM_EMAIL }}"
+              },
+              "exchangeRateApiAppId": {
+                "value": "${{ secrets.EXCHANGE_RATE_API_APP_ID }}"
+              },
+              "rabbitMqUsername": {
+                "value": "${{ secrets.RABBITMQ_USERNAME }}"
+              },
+              "rabbitMqPassword": {
+                "value": "${{ secrets.RABBITMQ_PASSWORD }}"
+              },
+              "redisPassword": {
+                "value": "${{ secrets.REDIS_PASSWORD }}"
+              },
+              "llmProcessorApiToken": {
+                "value": "${{ secrets.LLM_PROCESSOR_API_TOKEN }}"
+              },
+              "backendImageTag": {
+                "value": "${{ github.event.inputs.backend_image_tag || 'latest' }}"
+              },
+              "frontendImageTag": {
+                "value": "${{ github.event.inputs.frontend_image_tag || 'latest' }}"
+              },
+              "llmProcessorImageTag": {
+                "value": "${{ github.event.inputs.llm_processor_image_tag || 'latest' }}"
+              },
+              "gatewayImageTag": {
+                "value": "${{ github.event.inputs.gateway_image_tag || 'latest' }}"
+              }
+            }
+          }
+          EOF
+
+      - name: Deploy ARM Template
+        uses: azure/arm-deploy@v2
+        with:
+          resourceGroupName: ${{ env.RESOURCE_GROUP }}
+          template: ./template.json
+          parameters: ./parameters.generated.json
+          deploymentMode: Incremental
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f parameters.generated.json

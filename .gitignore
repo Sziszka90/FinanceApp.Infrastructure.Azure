@@ -1,0 +1,30 @@
+# Do not commit actual parameter files with secrets
+parameters.local.json
+parameters.*.json
+!parameters.json
+!github-actions-parameters.example.json
+
+# Generated parameter files
+parameters.generated.json
+
+# Backup files
+backup.json
+*.backup.json
+
+# Azure CLI
+.azure/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
