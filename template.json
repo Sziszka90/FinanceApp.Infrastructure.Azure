@@ -28,6 +28,62 @@
       "metadata": {
         "description": "SQL Server administrator password"
       }
+    },
+    "containerRegistryServer": {
+      "type": "string",
+      "defaultValue": "ghcr.io"
+    },
+    "containerRegistryUsername": {
+      "type": "string"
+    },
+    "containerRegistryPassword": {
+      "type": "securestring"
+    },
+    "openAiApiKey": {
+      "type": "securestring"
+    },
+    "authenticationSecretKey": {
+      "type": "securestring"
+    },
+    "smtpUser": {
+      "type": "string"
+    },
+    "smtpPassword": {
+      "type": "securestring"
+    },
+    "smtpFromEmail": {
+      "type": "string"
+    },
+    "exchangeRateApiAppId": {
+      "type": "securestring"
+    },
+    "rabbitMqUsername": {
+      "type": "string"
+    },
+    "rabbitMqPassword": {
+      "type": "securestring"
+    },
+    "redisPassword": {
+      "type": "securestring"
+    },
+    "llmProcessorApiToken": {
+      "type": "securestring"
+    },
+    "backendImageTag": {
+      "type": "string",
+      "defaultValue": "latest"
+    },
+    "frontendImageTag": {
+      "type": "string",
+      "defaultValue": "latest"
+    },
+    "llmProcessorImageTag": {
+      "type": "string",
+      "defaultValue": "latest"
+    },
+    "gatewayImageTag": {
+      "type": "string",
+      "defaultValue": "latest"
     }
   },
   "variables": {
