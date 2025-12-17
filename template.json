@@ -95,7 +95,7 @@
     "logAnalyticsWorkspaceName": "[concat(variables('resourcePrefix'), '-logs')]",
     "sqlServerName": "projects-server-sziszka90",
     "sqlDatabaseName": "FinanceAppDB",
-    "containerAppFrontendName": "frontend"
+    "containerAppFrontendName": "finance-app-frontend"
   },
   "resources": [
     {
