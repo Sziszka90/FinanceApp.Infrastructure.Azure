@@ -314,13 +314,13 @@
         "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]"
       ],
       "kind": "containerapps",
-        "identity": {
-          "type": "None"
+      "identity": {
+        "type": "None"
       },
       "properties": {
         "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
-          "workloadProfileName": "Consumption",
-          "configuration": {
+        "workloadProfileName": "Consumption",
+        "configuration": {
             "activeRevisionsMode": "Single",
             "ingress": {
               "external": false,
@@ -340,7 +340,7 @@
             },
             "identitySettings": [],
             "maxInactiveRevisions": 100
-          },
+        },
         "template": {
           "containers": [
             {
@@ -471,8 +471,7 @@
         "[resourceId('Microsoft.Sql/servers/databases', variables('sqlServerName'), variables('sqlDatabaseName'))]"
       ],
       "properties": {
-        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
-        "configuration": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",        "workloadProfileName": "Consumption",        "configuration": {
           "ingress": {
             "external": false,
             "targetPort": 8080,
@@ -711,6 +710,7 @@
       ],
       "properties": {
         "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
+        "workloadProfileName": "Consumption",
         "configuration": {
           "ingress": {
             "external": true,
