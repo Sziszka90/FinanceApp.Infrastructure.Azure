@@ -332,8 +332,7 @@
               "stickySessions": {
                 "affinity": "none"
               }
-            },
-            "maxInactiveRevisions": 100
+            }
         },
         "template": {
           "containers": [
@@ -390,8 +389,7 @@
               }
             ],
             "allowInsecure": false
-          },
-          "maxInactiveRevisions": 100
+          }
         },
         "template": {
           "containers": [
