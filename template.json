@@ -37,7 +37,10 @@
       "type": "string"
     },
     "containerRegistryPassword": {
-      "type": "securestring"
+      "type": "securestring",
+      "metadata": {
+        "description": "Container registry password"
+      }
     },
     "openAiApiKey": {
       "type": "securestring"

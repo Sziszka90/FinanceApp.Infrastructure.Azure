@@ -70,7 +70,7 @@ jobs:
                 "value": "${{ secrets.GHCR_USERNAME }}"
               },
               "containerRegistryPassword": {
-                "value": "${{ secrets.GHCR_TOKEN }}"
+                "value": "${{ secrets.GHCR_PAT }}"
               },
               "openAiApiKey": {
                 "value": "${{ secrets.OPENAI_API_KEY }}"
