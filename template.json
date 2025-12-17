@@ -318,20 +318,11 @@
         "workloadProfileName": "Consumption",
         "configuration": {
           "activeRevisionsMode": "Single",
-          "ingress": {
+        "ingress": {
             "external": false,
             "targetPort": 6379,
-            "transport": "Tcp",
-            "traffic": [
-              {
-                "weight": 100,
-                "latestRevision": true
-              }
-            ],
-            "allowInsecure": false,
-            "stickySessions": {
-              "affinity": "none"
-            }
+            "transport": "tcp",
+            "allowInsecure": false
           }
         },
         "template": {
@@ -349,18 +340,7 @@
             "minReplicas": 0,
             "maxReplicas": 10,
             "cooldownPeriod": 300,
-            "pollingInterval": 30,
-            "rules": [
-              {
-                "name": "tcp-scaler",
-                "custom": {
-                  "type": "tcp",
-                  "metadata": {
-                    "concurrentConnections": "10"
-                  }
-                }
-              }
-            ]
+            "pollingInterval": 30
           }
         }
       }
@@ -410,18 +390,7 @@
             "minReplicas": 0,
             "maxReplicas": 1,
             "cooldownPeriod": 1000,
-            "pollingInterval": 30,
-            "rules": [
-              {
-                "name": "http-scaler",
-                "custom": {
-                  "type": "http",
-                  "metadata": {
-                    "concurrentRequests": "10"
-                  }
-                }
-              }
-            ]
+            "pollingInterval": 30
           }
         },
         "secrets": [
