@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2024-06-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
     "environment": {
@@ -307,7 +307,7 @@
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2025-02-02-preview",
+      "apiVersion": "2024-03-01",
       "name": "[variables('containerAppCacheName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -318,7 +318,7 @@
         "workloadProfileName": "Consumption",
         "configuration": {
           "activeRevisionsMode": "Single",
-        "ingress": {
+          "ingress": {
             "external": false,
             "targetPort": 6379,
             "transport": "tcp",
@@ -347,7 +347,7 @@
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2025-02-02-preview",
+      "apiVersion": "2024-03-01",
       "name": "[variables('containerAppRabbitMQName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -363,7 +363,13 @@
             "targetPort": 5672,
             "transport": "tcp",
             "allowInsecure": false
-          }
+          },
+          "secrets": [
+            {
+              "name": "rabbitmq-password",
+              "value": "[parameters('rabbitMqPassword')]"
+            }
+          ]
         },
         "template": {
           "containers": [
@@ -390,20 +396,25 @@
             "minReplicas": 0,
             "maxReplicas": 1,
             "cooldownPeriod": 1000,
-            "pollingInterval": 30
+            "pollingInterval": 30,
+            "rules": [
+              {
+                "name": "http-scaler",
+                "custom": {
+                  "type": "http",
+                  "metadata": {
+                    "concurrentRequests": "10"
+                  }
+                }
+              }
+            ]
           }
-        },
-        "secrets": [
-          {
-            "name": "rabbitmq-password",
-            "value": "[parameters('rabbitMqPassword')]"
-          }
-        ]
+        }
       }
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2025-02-02-preview",
+      "apiVersion": "2024-03-01",
       "name": "[variables('containerAppBackendName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -427,6 +438,44 @@
               "server": "[parameters('containerRegistryServer')]",
               "username": "[parameters('containerRegistryUsername')]",
               "passwordSecretRef": "registry-password"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "registry-password",
+              "value": "[parameters('containerRegistryPassword')]"
+            },
+            {
+              "name": "openai-api-key",
+              "value": "[parameters('openAiApiKey')]"
+            },
+            {
+              "name": "auth-secret-key",
+              "value": "[parameters('authenticationSecretKey')]"
+            },
+            {
+              "name": "smtp-password",
+              "value": "[parameters('smtpPassword')]"
+            },
+            {
+              "name": "exchange-rate-api-app-id",
+              "value": "[parameters('exchangeRateApiAppId')]"
+            },
+            {
+              "name": "rabbitmq-password",
+              "value": "[parameters('rabbitMqPassword')]"
+            },
+            {
+              "name": "llm-processor-api-token",
+              "value": "[parameters('llmProcessorApiToken')]"
+            },
+            {
+              "name": "cache-connection-string",
+              "value": "[variables('cacheConnectionString')]"
+            },
+            {
+              "name": "sql-connection-string",
+              "value": "[variables('sqlConnectionString')]"
             }
           ]
         },
@@ -540,50 +589,12 @@
               }
             ]
           }
-        },
-        "secrets": [
-          {
-            "name": "registry-password",
-            "value": "[parameters('containerRegistryPassword')]"
-          },
-          {
-            "name": "openai-api-key",
-            "value": "[parameters('openAiApiKey')]"
-          },
-          {
-            "name": "auth-secret-key",
-            "value": "[parameters('authenticationSecretKey')]"
-          },
-          {
-            "name": "smtp-password",
-            "value": "[parameters('smtpPassword')]"
-          },
-          {
-            "name": "exchange-rate-api-app-id",
-            "value": "[parameters('exchangeRateApiAppId')]"
-          },
-          {
-            "name": "rabbitmq-password",
-            "value": "[parameters('rabbitMqPassword')]"
-          },
-          {
-            "name": "llm-processor-api-token",
-            "value": "[parameters('llmProcessorApiToken')]"
-          },
-          {
-            "name": "cache-connection-string",
-            "value": "[variables('cacheConnectionString')]"
-          },
-          {
-            "name": "sql-connection-string",
-            "value": "[variables('sqlConnectionString')]"
-          }
-        ]
+        }
       }
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2025-02-02-preview",
+      "apiVersion": "2024-03-01",
       "name": "[variables('containerAppFrontendName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -605,6 +616,12 @@
               "server": "[parameters('containerRegistryServer')]",
               "username": "[parameters('containerRegistryUsername')]",
               "passwordSecretRef": "registry-password"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "registry-password",
+              "value": "[parameters('containerRegistryPassword')]"
             }
           ]
         },
@@ -636,18 +653,12 @@
               }
             ]
           }
-        },
-        "secrets": [
-          {
-            "name": "registry-password",
-            "value": "[parameters('containerRegistryPassword')]"
-          }
-        ]
+        }
       }
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2025-02-02-preview",
+      "apiVersion": "2024-03-01",
       "name": "[variables('containerAppLLMProcessorName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -674,6 +685,28 @@
               "server": "[parameters('containerRegistryServer')]",
               "username": "[parameters('containerRegistryUsername')]",
               "passwordSecretRef": "registry-password"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "registry-password",
+              "value": "[parameters('containerRegistryPassword')]"
+            },
+            {
+              "name": "openai-api-key",
+              "value": "[parameters('openAiApiKey')]"
+            },
+            {
+              "name": "rabbitmq-password",
+              "value": "[parameters('rabbitMqPassword')]"
+            },
+            {
+              "name": "llm-processor-api-token",
+              "value": "[parameters('llmProcessorApiToken')]"
+            },
+            {
+              "name": "sql-connection-string",
+              "value": "[variables('sqlConnectionString')]"
             }
           ]
         },
@@ -739,34 +772,12 @@
               }
             ]
           }
-        },
-        "secrets": [
-          {
-            "name": "registry-password",
-            "value": "[parameters('containerRegistryPassword')]"
-          },
-          {
-            "name": "openai-api-key",
-            "value": "[parameters('openAiApiKey')]"
-          },
-          {
-            "name": "rabbitmq-password",
-            "value": "[parameters('rabbitMqPassword')]"
-          },
-          {
-            "name": "llm-processor-api-token",
-            "value": "[parameters('llmProcessorApiToken')]"
-          },
-          {
-            "name": "sql-connection-string",
-            "value": "[variables('sqlConnectionString')]"
-          }
-        ]
+        }
       }
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2025-02-02-preview",
+      "apiVersion": "2024-03-01",
       "name": "[variables('containerAppGatewayName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -788,6 +799,12 @@
               "server": "[parameters('containerRegistryServer')]",
               "username": "[parameters('containerRegistryUsername')]",
               "passwordSecretRef": "registry-password"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "registry-password",
+              "value": "[parameters('containerRegistryPassword')]"
             }
           ]
         },
@@ -819,13 +836,7 @@
               }
             ]
           }
-        },
-        "secrets": [
-          {
-            "name": "registry-password",
-            "value": "[parameters('containerRegistryPassword')]"
-          }
-        ]
+        }
       }
     }
   ],
