@@ -5,7 +5,7 @@
 param location string = 'polandcentral'
 
 @description('Container registry server')
-param containerRegistryServer string
+param containerRegistryServer string = 'ghcr.io'
 
 @description('Container registry username')
 param containerRegistryUsername string
