@@ -85,7 +85,6 @@ var containerAppCacheName = 'finance-app-cache'
 var containerAppRabbitMQName = 'finance-app-rabbitmq'
 var containerAppLLMProcessorName = 'finance-app-llmprocessor'
 var containerAppGatewayName = 'finance-app-gateway'
-var cacheConnectionString = '${containerAppCacheName}:6379,password=${redisPassword}'
 
 // Resources
 
@@ -420,7 +419,7 @@ resource containerAppBackend 'Microsoft.App/containerApps@2025-10-02-preview' = 
         }
         {
           name: 'cache-connection-string'
-          value: cacheConnectionString
+          value: '${containerAppCacheName}:6379,password=${redisPassword}'
         }
         {
           name: 'sql-connection-string'
