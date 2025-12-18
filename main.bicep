@@ -659,7 +659,7 @@ resource containerAppGateway 'Microsoft.App/containerApps@2025-10-02-preview' = 
       activeRevisionsMode: 'Single'
       ingress: {
         external: true
-        targetPort: 8080
+        targetPort: 80
         transport: 'http'
         allowInsecure: false
         customDomains: !empty(gatewayCustomDomain)

@@ -1,149 +1,105 @@
-name: Deploy Infrastructure
+name: Deploy Infrastructure (Bicep)
 
 on:
-  # push:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
-      backend_image_tag:
+      backendImageTag:
         description: "Backend image tag"
         required: false
         default: "latest"
-      frontend_image_tag:
+      frontendImageTag:
         description: "Frontend image tag"
         required: false
         default: "latest"
-      llm_processor_image_tag:
+      llmProcessorImageTag:
         description: "LLM Processor image tag"
         required: false
         default: "latest"
-      gateway_image_tag:
+      gatewayImageTag:
         description: "Gateway image tag"
         required: false
         default: "latest"
 
-env:
-  RESOURCE_GROUP: projects
-  LOCATION: polandcentral
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Azure Login
+      - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Create parameters file
-        id: create-params
-        run: |
-          cat > parameters.generated.json << EOF
-          {
-            "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
-            "contentVersion": "1.0.0.0",
-            "parameters": {
-              "environment": {
-                "value": "production"
-              },
-              "location": {
-                "value": "${{ env.LOCATION }}"
-              },
-              "sqlAdministratorLogin": {
-                "value": "${{ secrets.SQL_ADMIN_LOGIN }}"
-              },
-              "sqlAdministratorPassword": {
-                "value": "${{ secrets.SQL_ADMIN_PASSWORD }}"
-              },
-              "containerRegistryServer": {
-                "value": "ghcr.io"
-              },
-              "containerRegistryUsername": {
-                "value": "${{ secrets.GHCR_USERNAME }}"
-              },
-              "containerRegistryPassword": {
-                "value": "${{ secrets.GHCR_PAT }}"
-              },
-              "openAiApiKey": {
-                "value": "${{ secrets.OPENAI_API_KEY }}"
-              },
-              "authenticationSecretKey": {
-                "value": "${{ secrets.SECRET_KEY }}"
-              },
-              "authenticationAudience": {
-                "value": "${{ vars.AUDIENCE }}"
-              },
-              "authenticationIssuer": {
-                "value": "${{ vars.ISSUER }}"
-              },
-              "smtpHost": {
-                "value": "${{ vars.SMTP_HOST }}"
-              },
-              "smtpUser": {
-                "value": "${{ secrets.SMTP_USER }}"
-              },
-              "smtpPassword": {
-                "value": "${{ secrets.SMTP_PASSWORD }}"
-              },
-              "smtpFromEmail": {
-                "value": "${{ secrets.SMTP_FROM_EMAIL }}"
-              },
-              "exchangeRateApiUrl": {
-                "value": "${{ vars.EXCHANGE_RATE_API_URL }}"
-              },
-              "exchangeRateApiEndpoint": {
-                "value": "${{ vars.EXCHANGE_RATE_API_ENDPOINT }}"
-              },
-              "exchangeRateApiAppId": {
-                "value": "${{ secrets.EXCHANGE_RATE_APP_ID }}"
-              },
-              "rabbitMqUsername": {
-                "value": "${{ secrets.RABBITMQ_USER }}"
-              },
-              "rabbitMqPassword": {
-                "value": "${{ secrets.RABBITMQ_PASS }}"
-              },
-              "redisPassword": {
-                "value": "${{ secrets.REDIS_PASSWORD }}"
-              },
-              "llmProcessorApiToken": {
-                "value": "${{ secrets.LLM_PROCESSOR_TOKEN }}"
-              },
-              "backendImageTag": {
-                "value": "${{ github.event.inputs.backend_image_tag || 'latest' }}"
-              },
-              "frontendImageTag": {
-                "value": "${{ github.event.inputs.frontend_image_tag || 'latest' }}"
-              },
-              "llmProcessorImageTag": {
-                "value": "${{ github.event.inputs.llm_processor_image_tag || 'latest' }}"
-              },
-              "gatewayImageTag": {
-                "value": "${{ github.event.inputs.gateway_image_tag || 'latest' }}"
-              }
-            }
-          }
-          EOF
-
-      - name: Deploy ARM Template
-        if: steps.create-params.outcome == 'success'
+      - name: Deploy Bicep Template
         uses: azure/arm-deploy@v2
         with:
-          resourceGroupName: ${{ env.RESOURCE_GROUP }}
-          template: ./template.json
-          parameters: ./parameters.generated.json
+          resourceGroupName: projects
+          template: ./main.bicep
           deploymentMode: Incremental
+          deploymentName: bicep-deploy-${{ github.run_number }}
+          parameters: >
+            sqlAdministratorLogin=${{ secrets.SQL_ADMIN_LOGIN }}
+            sqlAdministratorPassword=${{ secrets.SQL_ADMIN_PASSWORD }}
+            containerRegistryUsername=${{ secrets.GHCR_USERNAME }}
+            containerRegistryPassword=${{ secrets.GHCR_PAT }}
+            openAiApiKey=${{ secrets.OPENAI_API_KEY }}
+            authenticationSecretKey=${{ secrets.SECRET_KEY }}
+            authenticationAudience=${{ vars.AUDIENCE }}
+            authenticationIssuer=${{ vars.ISSUER }}
+            smtpHost=${{ vars.SMTP_HOST }}
+            smtpUser=${{ secrets.SMTP_USER }}
+            smtpPassword=${{ secrets.SMTP_PASSWORD }}
+            smtpFromEmail=${{ secrets.SMTP_FROM_EMAIL }}
+            exchangeRateApiUrl=${{ vars.EXCHANGE_RATE_API_URL }}
+            exchangeRateApiEndpoint=${{ vars.EXCHANGE_RATE_API_ENDPOINT }}
+            exchangeRateApiAppId=${{ secrets.EXCHANGE_RATE_APP_ID }}
+            rabbitMqUsername=${{ secrets.RABBITMQ_USER }}
+            rabbitMqPassword=${{ secrets.RABBITMQ_PASS }}
+            redisPassword=${{ secrets.REDIS_PASSWORD }}
+            redisConnectionString=${{ secrets.CACHE_CONNECTION_STRING }}
+            llmProcessorApiToken=${{ secrets.LLM_PROCESSOR_TOKEN }}
+            backendImageTag=${{ github.event.inputs.backendImageTag || 'latest' }}
+            frontendImageTag=${{ github.event.inputs.frontendImageTag || 'latest' }}
+            llmProcessorImageTag=${{ github.event.inputs.llmProcessorImageTag || 'latest' }}
+            gatewayImageTag=${{ github.event.inputs.gatewayImageTag || 'latest' }}
+            environment=production
 
-      - name: Cleanup
-        if: always()
+      - name: Display Deployment Outputs
         run: |
-          rm -f parameters.generated.json
+          echo "✅ Deployment completed successfully!"
+          echo "Deployment name: bicep-deploy-${{ github.run_number }}"
+
+          # Get deployment outputs
+          az deployment group show \
+            --resource-group projects \
+            --name bicep-deploy-${{ github.run_number }} \
+            --query properties.outputs \
+            --output json > deployment-outputs.json
+
+          echo "📊 Deployment Outputs:"
+          cat deployment-outputs.json | jq '.'
+
+          # Extract and display URLs
+          echo ""
+          echo "🌐 Application URLs:"
+          echo "Frontend: https://$(cat deployment-outputs.json | jq -r '.frontendUrl.value')"
+          echo "Gateway: https://$(cat deployment-outputs.json | jq -r '.gatewayUrl.value')"
+          echo "Backend: http://$(cat deployment-outputs.json | jq -r '.backendUrl.value')"
+          echo "LLM Processor: http://$(cat deployment-outputs.json | jq -r '.llmProcessorUrl.value')"
+
+          echo ""
+          echo "💾 Infrastructure:"
+          echo "SQL Server: $(cat deployment-outputs.json | jq -r '.sqlServerFqdn.value')"
+          echo "Log Analytics: $(cat deployment-outputs.json | jq -r '.logAnalyticsWorkspaceId.value')"
