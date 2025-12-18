@@ -372,6 +372,8 @@
           "scale": {
             "minReplicas": 0,
             "maxReplicas": 10,
+            "cooldownPeriod": 300,
+            "pollingInterval": 30,
             "rules": [
               {
                 "name": "http-scaler",
@@ -434,7 +436,7 @@
           "scale": {
             "minReplicas": 0,
             "maxReplicas": 10,
-            "cooldownPeriod": 1000,
+            "cooldownPeriod": 300,
             "pollingInterval": 30,
             "rules": [
               {
