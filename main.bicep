@@ -188,7 +188,7 @@ resource sqlFirewallRule 'Microsoft.Sql/servers/firewallRules@2023-08-01' = {
 }
 
 // Cache Container App (Redis)
-resource containerAppCache 'Microsoft.App/containerApps@2023-05-01' = {
+resource containerAppCache 'Microsoft.App/containerApps@2025-10-02-preview' = {
   name: containerAppCacheName
   location: location
   tags: union(commonTags, {
@@ -237,7 +237,7 @@ resource containerAppCache 'Microsoft.App/containerApps@2023-05-01' = {
 }
 
 // RabbitMQ Container App
-resource containerAppRabbitMQ 'Microsoft.App/containerApps@2023-05-01' = {
+resource containerAppRabbitMQ 'Microsoft.App/containerApps@2025-10-02-preview' = {
   name: containerAppRabbitMQName
   location: location
   tags: union(commonTags, {
@@ -291,7 +291,7 @@ resource containerAppRabbitMQ 'Microsoft.App/containerApps@2023-05-01' = {
 }
 
 // LLM Processor Container App
-resource containerAppLLMProcessor 'Microsoft.App/containerApps@2023-05-01' = {
+resource containerAppLLMProcessor 'Microsoft.App/containerApps@2025-10-02-preview' = {
   name: containerAppLLMProcessorName
   location: location
   tags: union(commonTags, {
@@ -365,7 +365,7 @@ resource containerAppLLMProcessor 'Microsoft.App/containerApps@2023-05-01' = {
 }
 
 // Backend Container App
-resource containerAppBackend 'Microsoft.App/containerApps@2023-05-01' = {
+resource containerAppBackend 'Microsoft.App/containerApps@2025-10-02-preview' = {
   name: containerAppBackendName
   location: location
   tags: union(commonTags, {
@@ -549,7 +549,7 @@ resource containerAppBackend 'Microsoft.App/containerApps@2023-05-01' = {
 }
 
 // Frontend Container App
-resource containerAppFrontend 'Microsoft.App/containerApps@2023-05-01' = {
+resource containerAppFrontend 'Microsoft.App/containerApps@2025-10-02-preview' = {
   name: containerAppFrontendName
   location: location
   tags: union(commonTags, {
@@ -613,7 +613,7 @@ resource containerAppFrontend 'Microsoft.App/containerApps@2023-05-01' = {
 }
 
 // Gateway Container App
-resource containerAppGateway 'Microsoft.App/containerApps@2023-05-01' = {
+resource containerAppGateway 'Microsoft.App/containerApps@2025-10-02-preview' = {
   name: containerAppGatewayName
   location: location
   tags: union(commonTags, {
