@@ -147,6 +147,7 @@ resource managedEnvironment 'Microsoft.App/managedEnvironments@2023-05-01' = {
 }
 
 // Managed Certificate for Gateway (only if creating new)
+// Must be created AFTER gateway adds the hostname
 resource gatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2023-05-01' = if (!empty(gatewayCustomDomain) && createGatewayCertificate) {
   parent: managedEnvironment
   name: certificateName
@@ -155,6 +156,9 @@ resource gatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificat
     subjectName: gatewayCustomDomain
     domainControlValidation: 'CNAME'
   }
+  dependsOn: [
+    containerAppGateway
+  ]
 }
 
 // Reference existing certificate (if not creating new)
@@ -662,18 +666,24 @@ resource containerAppGateway 'Microsoft.App/containerApps@2025-10-02-preview' = 
         targetPort: 80
         transport: 'http'
         allowInsecure: false
-        customDomains: !empty(gatewayCustomDomain)
+        customDomains: (!empty(gatewayCustomDomain) && createGatewayCertificate)
           ? [
               {
                 name: gatewayCustomDomain
-                // When creating cert: add hostname without SSL to enable cert creation
-                // When cert exists: bind with SSL
-                bindingType: createGatewayCertificate ? 'Disabled' : 'SniEnabled'
-                // Only set certificateId when using existing cert
-                certificateId: createGatewayCertificate ? null : existingGatewayCertificate.id
+                // Add hostname without SSL to enable cert creation
+                bindingType: 'Disabled'
               }
             ]
-          : []
+          : (!empty(gatewayCustomDomain) && !createGatewayCertificate)
+              ? [
+                  {
+                    name: gatewayCustomDomain
+                    // Bind existing cert with SSL
+                    bindingType: 'SniEnabled'
+                    certificateId: existingGatewayCertificate.id
+                  }
+                ]
+              : []
       }
       registries: [
         {
