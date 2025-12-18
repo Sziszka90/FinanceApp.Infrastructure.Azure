@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2019-08-01/deploymentTemplate.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
     "environment": {
@@ -372,6 +372,7 @@
           "scale": {
             "minReplicas": 0,
             "maxReplicas": 10,
+            "cooldownPeriod": 300,
             "rules": [
               {
                 "name": "http-scaler",
@@ -380,9 +381,7 @@
                   "metadata": {
                     "concurrentRequests": "10"
                   }
-                },
-                "cooldownPeriod": 300,
-                "pollingInterval": "30"
+                }
               }
             ]
           }
@@ -436,6 +435,7 @@
           "scale": {
             "minReplicas": 0,
             "maxReplicas": 10,
+            "cooldownPeriod": 300,
             "rules": [
               {
                 "name": "http-scaler",
@@ -443,9 +443,7 @@
                   "metadata": {
                     "concurrentRequests": "10"
                   }
-                },
-                "cooldownPeriod": 300,
-                "pollingInterval": "30"
+                }
               }
             ]
           }
