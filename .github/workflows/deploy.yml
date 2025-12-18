@@ -22,6 +22,11 @@ on:
         description: "Gateway image tag"
         required: false
         default: "latest"
+      bindCertificate:
+        description: "Bind SSL certificate to custom domain"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -30,6 +35,11 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    outputs:
+      llmProcessorUrl: ${{ steps.get-outputs.outputs.llmProcessorUrl }}
+      backendUrl: ${{ steps.get-outputs.outputs.backendUrl }}
+      frontendUrl: ${{ steps.get-outputs.outputs.frontendUrl }}
+      certificateName: ${{ steps.get-outputs.outputs.certificateName }}
 
     steps:
       - name: Checkout code
@@ -74,9 +84,11 @@ jobs:
             frontendImageTag=${{ github.event.inputs.frontendImageTag || 'latest' }}
             llmProcessorImageTag=${{ github.event.inputs.llmProcessorImageTag || 'latest' }}
             gatewayImageTag=${{ github.event.inputs.gatewayImageTag || 'latest' }}
+            createGatewayCertificate=${{ github.event.inputs.bindCertificate || 'false' }}
             environment=production
 
       - name: Display Deployment Outputs
+        id: get-outputs
         run: |
           echo "✅ Deployment completed successfully!"
           echo "Deployment name: bicep-deploy-${{ github.run_number }}"
@@ -103,3 +115,49 @@ jobs:
           echo "💾 Infrastructure:"
           echo "SQL Server: $(cat deployment-outputs.json | jq -r '.sqlServerFqdn.value')"
           echo "Log Analytics: $(cat deployment-outputs.json | jq -r '.logAnalyticsWorkspaceId.value')"
+
+          # Set outputs for next job
+          echo "llmProcessorUrl=$(cat deployment-outputs.json | jq -r '.llmProcessorUrl.value')" >> $GITHUB_OUTPUT
+          echo "backendUrl=$(cat deployment-outputs.json | jq -r '.backendUrl.value')" >> $GITHUB_OUTPUT
+          echo "frontendUrl=$(cat deployment-outputs.json | jq -r '.frontendUrl.value')" >> $GITHUB_OUTPUT
+          echo "certificateName=www.financeapp.fun" >> $GITHUB_OUTPUT
+
+  bind-certificate:
+    needs: deploy
+    if: github.event.inputs.bindCertificate == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Stage 2 - Bind SSL Certificate
+        uses: azure/arm-deploy@v2
+        with:
+          resourceGroupName: projects
+          template: ./stage2-cert-binding.bicep
+          deploymentMode: Incremental
+          deploymentName: bicep-stage2-${{ github.run_number }}
+          parameters: >
+            containerRegistryUsername=${{ secrets.GHCR_USERNAME }}
+            containerRegistryPassword=${{ secrets.GHCR_PAT }}
+            certificateName=${{ needs.deploy.outputs.certificateName }}
+            llmProcessorUrl=https://${{ needs.deploy.outputs.llmProcessorUrl }}
+            backendUrl=https://${{ needs.deploy.outputs.backendUrl }}
+            frontendUrl=https://${{ needs.deploy.outputs.frontendUrl }}
+            gatewayImageTag=${{ github.event.inputs.gatewayImageTag || 'latest' }}
+            environment=production
+
+      - name: Display Stage 2 Outputs
+        run: |
+          echo "✅ Stage 2 - SSL Certificate binding completed!"
+          echo ""
+          echo "🔒 Custom Domain with SSL:"
+          echo "Gateway with SSL: https://www.financeapp.fun"

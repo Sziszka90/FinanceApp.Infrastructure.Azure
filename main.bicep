@@ -69,7 +69,7 @@ param gatewayCustomDomain string = 'www.financeapp.fun'
 param certificateName string = 'www.financeapp.fun'
 
 @description('Whether to create a new managed certificate (false to use existing)')
-param createGatewayCertificate bool = true
+param createGatewayCertificate bool = false
 
 @description('Environment name for resource tagging')
 @allowed([
@@ -666,8 +666,11 @@ resource containerAppGateway 'Microsoft.App/containerApps@2025-10-02-preview' = 
           ? [
               {
                 name: gatewayCustomDomain
-                bindingType: 'SniEnabled'
-                certificateId: createGatewayCertificate ? gatewayCertificate.id : existingGatewayCertificate.id
+                // First deployment: 'Disabled' to add hostname (createGatewayCertificate=true)
+                // Second deployment: 'SniEnabled' to bind cert (createGatewayCertificate=false)
+                bindingType: createGatewayCertificate ? 'Disabled' : 'SniEnabled'
+                // Only bind certificate on second deployment
+                certificateId: createGatewayCertificate ? null : existingGatewayCertificate.id
               }
             ]
           : []
