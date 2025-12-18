@@ -456,6 +456,79 @@
     {
       "type": "Microsoft.App/containerApps",
       "apiVersion": "2026-01-01",
+      "name": "[variables('containerAppLLMProcessorName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]"
+      ],
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
+        "workloadProfileName": "Consumption",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "ingress": {
+            "external": false,
+            "targetPort": 8080,
+            "transport": "http"
+          },
+          "registries": [
+            {
+              "server": "[parameters('containerRegistryServer')]",
+              "username": "[parameters('containerRegistryUsername')]",
+              "passwordSecretRef": "registry-password"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "registry-password",
+              "value": "[parameters('containerRegistryPassword')]"
+            },
+            {
+              "name": "llm-processor-api-token",
+              "value": "[parameters('llmProcessorApiToken')]"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "llmprocessor",
+              "image": "[concat(parameters('containerRegistryServer'), '/sziszka90/', variables('containerAppLLMProcessorName'), ':', parameters('llmProcessorImageTag'))]",
+              "env": [
+                {
+                  "name": "ApiToken",
+                  "secretRef": "llm-processor-api-token"
+                }
+              ],
+              "resources": {
+                "cpu": 0.5,
+                "memory": "1Gi"
+              }
+            }
+          ],
+          "scale": {
+            "minReplicas": 0,
+            "maxReplicas": 10,
+            "cooldownPeriod": 300,
+            "pollingInterval": 30,
+            "rules": [
+              {
+                "name": "http-scaler",
+                "custom": {
+                  "type": "http",
+                  "metadata": {
+                    "concurrentRequests": "10"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2026-01-01",
       "name": "[variables('containerAppGatewayName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -542,6 +615,10 @@
     "gatewayUrl": {
       "type": "string",
       "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppGatewayName')), '2026-01-01').configuration.ingress.fqdn]"
+    },
+    "llmProcessorUrl": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppLLMProcessorName')), '2026-01-01').configuration.ingress.fqdn]"
     }
   }
 }
