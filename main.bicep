@@ -63,7 +63,7 @@ param llmProcessorImageTag string = 'latest'
 param gatewayImageTag string = 'latest'
 
 @description('Custom domain for gateway (leave empty to use default)')
-param gatewayCustomDomain string = ''
+param gatewayCustomDomain string = 'wwww.financeapp.fun'
 
 @description('Environment name for resource tagging')
 @allowed([
