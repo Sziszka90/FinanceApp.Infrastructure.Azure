@@ -49,6 +49,9 @@ param rabbitMqUsername string
 param rabbitMqPassword string
 
 @secure()
+param redisConnectionString string
+
+@secure()
 param redisPassword string
 
 @secure()
@@ -418,8 +421,12 @@ resource containerAppBackend 'Microsoft.App/containerApps@2025-10-02-preview' = 
           value: llmProcessorApiToken
         }
         {
+          name: 'redis-password-backend'
+          value: redisPassword
+        }
+        {
           name: 'cache-connection-string'
-          value: '${containerAppCacheName}:6379,password=${redisPassword}'
+          value: redisConnectionString
         }
         {
           name: 'sql-connection-string'
@@ -511,7 +518,7 @@ resource containerAppBackend 'Microsoft.App/containerApps@2025-10-02-preview' = 
             }
             {
               name: 'CacheSettings__ConnectionString'
-              secretRef: 'cache-connection-string'
+              value: '${containerAppCacheName}:6379,password=${redisPassword}'
             }
           ]
           resources: {
