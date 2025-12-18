@@ -48,6 +48,19 @@
     "authenticationSecretKey": {
       "type": "securestring"
     },
+    "authenticationAudience": {
+      "type": "string"
+    },
+    "authenticationIssuer": {
+      "type": "string"
+    },
+    "smtpHost": {
+      "type": "string"
+    },
+    "smtpPort": {
+      "type": "int",
+      "defaultValue": 587
+    },
     "smtpUser": {
       "type": "string"
     },
@@ -55,6 +68,12 @@
       "type": "securestring"
     },
     "smtpFromEmail": {
+      "type": "string"
+    },
+    "exchangeRateApiUrl": {
+      "type": "string"
+    },
+    "exchangeRateApiEndpoint": {
       "type": "string"
     },
     "exchangeRateApiAppId": {
@@ -95,6 +114,7 @@
     "logAnalyticsWorkspaceName": "[concat(variables('resourcePrefix'), '-logs')]",
     "sqlServerName": "projects-server-sziszka90",
     "sqlDatabaseName": "FinanceAppDB",
+    "containerAppBackendName": "finance-app-backend",
     "containerAppFrontendName": "finance-app-frontend"
   },
   "resources": [
@@ -190,6 +210,182 @@
     {
       "type": "Microsoft.App/containerApps",
       "apiVersion": "2024-03-01",
+      "name": "[variables('containerAppBackendName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
+        "[resourceId('Microsoft.Sql/servers/databases', variables('sqlServerName'), variables('sqlDatabaseName'))]"
+      ],
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
+        "workloadProfileName": "Consumption",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "ingress": {
+            "external": false,
+            "targetPort": 8080,
+            "transport": "http"
+          },
+          "registries": [
+            {
+              "server": "[parameters('containerRegistryServer')]",
+              "username": "[parameters('containerRegistryUsername')]",
+              "passwordSecretRef": "registry-password"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "registry-password",
+              "value": "[parameters('containerRegistryPassword')]"
+            },
+            {
+              "name": "openai-api-key",
+              "value": "[parameters('openAiApiKey')]"
+            },
+            {
+              "name": "auth-secret-key",
+              "value": "[parameters('authenticationSecretKey')]"
+            },
+            {
+              "name": "smtp-password",
+              "value": "[parameters('smtpPassword')]"
+            },
+            {
+              "name": "exchange-rate-api-app-id",
+              "value": "[parameters('exchangeRateApiAppId')]"
+            },
+            {
+              "name": "rabbitmq-password",
+              "value": "[parameters('rabbitMqPassword')]"
+            },
+            {
+              "name": "llm-processor-api-token",
+              "value": "[parameters('llmProcessorApiToken')]"
+            },
+            {
+              "name": "cache-connection-string",
+              "value": "[variables('cacheConnectionString')]"
+            },
+            {
+              "name": "sql-connection-string",
+              "value": "[variables('sqlConnectionString')]"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "backend",
+              "image": "[concat(parameters('containerRegistryServer'), '/sziszka90/', variables('containerAppBackendName'), ':', parameters('backendImageTag'))]",
+              "env": [
+                {
+                  "name": "ConnectionStrings__MsSql",
+                  "secretRef": "sql-connection-string"
+                },
+                {
+                  "name": "LLMClientSettings__ApiKey",
+                  "secretRef": "openai-api-key"
+                },
+                {
+                  "name": "AuthenticationSettings__SecretKey",
+                  "secretRef": "auth-secret-key"
+                },
+                {
+                  "name": "AuthenticationSettings__Audience",
+                  "value": "[parameters('authenticationAudience')]"
+                },
+                {
+                  "name": "AuthenticationSettings__Issuer",
+                  "value": "[parameters('authenticationIssuer')]"
+                },
+                {
+                  "name": "SmtpSettings__SmtpHost",
+                  "value": "[parameters('smtpHost')]"
+                },
+                {
+                  "name": "SmtpSettings__SmtpPort",
+                  "value": "[string(parameters('smtpPort'))]"
+                },
+                {
+                  "name": "SmtpSettings__SmtpUser",
+                  "value": "[parameters('smtpUser')]"
+                },
+                {
+                  "name": "SmtpSettings__SmtpPass",
+                  "secretRef": "smtp-password"
+                },
+                {
+                  "name": "SmtpSettings__FromEmail",
+                  "value": "[parameters('smtpFromEmail')]"
+                },
+                {
+                  "name": "ExchangeRateSettings__ApiUrl",
+                  "value": "[parameters('exchangeRateApiUrl')]"
+                },
+                {
+                  "name": "ExchangeRateSettings__ApiEndpoint",
+                  "value": "[parameters('exchangeRateApiEndpoint')]"
+                },
+                {
+                  "name": "ExchangeRateSettings__AppId",
+                  "secretRef": "exchange-rate-api-app-id"
+                },
+                {
+                  "name": "RabbitMqSettings__HostName",
+                  "value": "[variables('containerAppRabbitMQName')]"
+                },
+                {
+                  "name": "RabbitMqSettings__Port",
+                  "value": "5672"
+                },
+                {
+                  "name": "RabbitMqSettings__UserName",
+                  "value": "[parameters('rabbitMqUsername')]"
+                },
+                {
+                  "name": "RabbitMqSettings__Password",
+                  "secretRef": "rabbitmq-password"
+                },
+                {
+                  "name": "LLMProcessorSettings__Token",
+                  "secretRef": "llm-processor-api-token"
+                },
+                {
+                  "name": "LLMProcessorSettings__ApiUrl",
+                  "value": "[concat('http://', variables('containerAppLLMProcessorName'))]"
+                },
+                {
+                  "name": "CacheSettings__ConnectionString",
+                  "secretRef": "cache-connection-string"
+                }
+              ],
+              "resources": {
+                "cpu": 0.5,
+                "memory": "1Gi"
+              }
+            }
+          ],
+          "scale": {
+            "minReplicas": 0,
+            "maxReplicas": 10,
+            "rules": [
+              {
+                "name": "http-scaler",
+                "custom": {
+                  "type": "http",
+                  "metadata": {
+                    "concurrentRequests": "10"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2024-03-01",
       "name": "[variables('containerAppFrontendName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -261,6 +457,10 @@
     "logAnalyticsWorkspaceId": {
       "type": "string",
       "value": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName'))]"
+    },
+    "backendUrl": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppBackendName')), '2024-03-01').configuration.ingress.fqdn]"
     },
     "frontendUrl": {
       "type": "string",
