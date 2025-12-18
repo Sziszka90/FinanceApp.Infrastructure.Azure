@@ -45,6 +45,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Create parameters file
+        id: create-params
         run: |
           cat > parameters.generated.json << EOF
           {
@@ -134,6 +135,7 @@ jobs:
           EOF
 
       - name: Deploy ARM Template
+        if: steps.create-params.outcome == 'success'
         uses: azure/arm-deploy@v2
         with:
           resourceGroupName: ${{ env.RESOURCE_GROUP }}
