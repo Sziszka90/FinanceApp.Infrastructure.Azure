@@ -63,7 +63,7 @@ param llmProcessorImageTag string = 'latest'
 param gatewayImageTag string = 'latest'
 
 @description('Custom domain for gateway (leave empty to use default)')
-param gatewayCustomDomain string = 'wwww.financeapp.fun'
+param gatewayCustomDomain string = 'www.financeapp.fun'
 
 @description('Environment name for resource tagging')
 @allowed([
@@ -137,6 +137,17 @@ resource managedEnvironment 'Microsoft.App/managedEnvironments@2023-05-01' = {
         name: 'Consumption'
       }
     ]
+  }
+}
+
+// Managed Certificate for Gateway Custom Domain
+resource gatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2023-05-01' = if (!empty(gatewayCustomDomain)) {
+  parent: managedEnvironment
+  name: gatewayCustomDomain
+  location: location
+  properties: {
+    subjectName: gatewayCustomDomain
+    domainControlValidation: 'CNAME'
   }
 }
 
@@ -644,7 +655,7 @@ resource containerAppGateway 'Microsoft.App/containerApps@2025-10-02-preview' = 
               {
                 name: gatewayCustomDomain
                 bindingType: 'SniEnabled'
-                certificateId: '${managedEnvironment.id}/managedCertificates/${gatewayCustomDomain}'
+                certificateId: gatewayCertificate.id
               }
             ]
           : []
