@@ -1,0 +1,104 @@
+name: Deploy Infrastructure (Bicep)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      backendImageTag:
+        description: "Backend image tag"
+        required: false
+        default: "latest"
+      frontendImageTag:
+        description: "Frontend image tag"
+        required: false
+        default: "latest"
+      llmProcessorImageTag:
+        description: "LLM Processor image tag"
+        required: false
+        default: "latest"
+      gatewayImageTag:
+        description: "Gateway image tag"
+        required: false
+        default: "latest"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Bicep Template
+        uses: azure/arm-deploy@v2
+        with:
+          resourceGroupName: projects
+          template: ./main.bicep
+          deploymentMode: Incremental
+          deploymentName: bicep-deploy-${{ github.run_number }}
+          parameters: >
+            sqlAdministratorLogin=${{ secrets.SQL_ADMIN_LOGIN }}
+            sqlAdministratorPassword=${{ secrets.SQL_ADMIN_PASSWORD }}
+            containerRegistryUsername=${{ secrets.GHCR_USERNAME }}
+            containerRegistryPassword=${{ secrets.GHCR_PAT }}
+            openAiApiKey=${{ secrets.OPENAI_API_KEY }}
+            authenticationSecretKey=${{ secrets.SECRET_KEY }}
+            authenticationAudience=${{ vars.AUDIENCE }}
+            authenticationIssuer=${{ vars.ISSUER }}
+            smtpHost=${{ vars.SMTP_HOST }}
+            smtpUser=${{ secrets.SMTP_USER }}
+            smtpPassword=${{ secrets.SMTP_PASSWORD }}
+            smtpFromEmail=${{ secrets.SMTP_FROM_EMAIL }}
+            exchangeRateApiUrl=${{ vars.EXCHANGE_RATE_API_URL }}
+            exchangeRateApiEndpoint=${{ vars.EXCHANGE_RATE_API_ENDPOINT }}
+            exchangeRateApiAppId=${{ secrets.EXCHANGE_RATE_APP_ID }}
+            rabbitMqUsername=${{ secrets.RABBITMQ_USER }}
+            rabbitMqPassword=${{ secrets.RABBITMQ_PASS }}
+            redisPassword=${{ secrets.REDIS_PASSWORD }}
+            llmProcessorApiToken=${{ secrets.LLM_PROCESSOR_TOKEN }}
+            backendImageTag=${{ github.event.inputs.backendImageTag || 'latest' }}
+            frontendImageTag=${{ github.event.inputs.frontendImageTag || 'latest' }}
+            llmProcessorImageTag=${{ github.event.inputs.llmProcessorImageTag || 'latest' }}
+            gatewayImageTag=${{ github.event.inputs.gatewayImageTag || 'latest' }}
+            environment=production
+
+      - name: Display Deployment Outputs
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "Deployment name: bicep-deploy-${{ github.run_number }}"
+
+          # Get deployment outputs
+          az deployment group show \
+            --resource-group projects \
+            --name bicep-deploy-${{ github.run_number }} \
+            --query properties.outputs \
+            --output json > deployment-outputs.json
+
+          echo "📊 Deployment Outputs:"
+          cat deployment-outputs.json | jq '.'
+
+          # Extract and display URLs
+          echo ""
+          echo "🌐 Application URLs:"
+          echo "Frontend: https://$(cat deployment-outputs.json | jq -r '.frontendUrl.value')"
+          echo "Gateway: https://$(cat deployment-outputs.json | jq -r '.gatewayUrl.value')"
+          echo "Backend: http://$(cat deployment-outputs.json | jq -r '.backendUrl.value')"
+          echo "LLM Processor: http://$(cat deployment-outputs.json | jq -r '.llmProcessorUrl.value')"
+
+          echo ""
+          echo "💾 Infrastructure:"
+          echo "SQL Server: $(cat deployment-outputs.json | jq -r '.sqlServerFqdn.value')"
+          echo "Log Analytics: $(cat deployment-outputs.json | jq -r '.logAnalyticsWorkspaceId.value')"
