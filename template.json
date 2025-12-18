@@ -119,6 +119,7 @@
     "containerAppCacheName": "finance-app-cache",
     "containerAppRabbitMQName": "finance-app-rabbitmq",
     "containerAppLLMProcessorName": "finance-app-llmprocessor",
+    "containerAppGatewayName": "finance-app-gateway",
     "cacheConnectionString": "[concat(variables('containerAppCacheName'), ':6379,password=', parameters('redisPassword'))]"
   },
   "resources": [
@@ -372,7 +373,7 @@
           "scale": {
             "minReplicas": 0,
             "maxReplicas": 10,
-            "cooldownPeriod": 400,
+            "cooldownPeriod": 300,
             "pollingInterval": 30,
             "rules": [
               {
@@ -451,6 +452,70 @@
           }
         }
       }
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2026-01-01",
+      "name": "[variables('containerAppGatewayName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
+        "[resourceId('Microsoft.App/containerApps', variables('containerAppFrontendName'))]"
+      ],
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
+        "workloadProfileName": "Consumption",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "ingress": {
+            "external": true,
+            "targetPort": 8080,
+            "transport": "http",
+            "allowInsecure": false
+          },
+          "registries": [
+            {
+              "server": "[parameters('containerRegistryServer')]",
+              "username": "[parameters('containerRegistryUsername')]",
+              "passwordSecretRef": "registry-password"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "registry-password",
+              "value": "[parameters('containerRegistryPassword')]"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "gateway",
+              "image": "[concat(parameters('containerRegistryServer'), '/sziszka90/', variables('containerAppGatewayName'), ':', parameters('gatewayImageTag'))]",
+              "resources": {
+                "cpu": 0.5,
+                "memory": "1Gi"
+              }
+            }
+          ],
+          "scale": {
+            "minReplicas": 0,
+            "maxReplicas": 10,
+            "cooldownPeriod": 300,
+            "pollingInterval": 30,
+            "rules": [
+              {
+                "name": "http-scaler",
+                "http": {
+                  "metadata": {
+                    "concurrentRequests": "10"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
     }
   ],
   "outputs": {
@@ -473,6 +538,10 @@
     "frontendUrl": {
       "type": "string",
       "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppFrontendName')), '2026-01-01').configuration.ingress.fqdn]"
+    },
+    "gatewayUrl": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppGatewayName')), '2026-01-01').configuration.ingress.fqdn]"
     }
   }
 }
