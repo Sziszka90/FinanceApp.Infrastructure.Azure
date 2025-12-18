@@ -662,15 +662,12 @@ resource containerAppGateway 'Microsoft.App/containerApps@2025-10-02-preview' = 
         targetPort: 80
         transport: 'http'
         allowInsecure: false
-        customDomains: !empty(gatewayCustomDomain)
+        customDomains: (!empty(gatewayCustomDomain) && createGatewayCertificate)
           ? [
               {
                 name: gatewayCustomDomain
-                // First deployment: 'Disabled' to add hostname (createGatewayCertificate=true)
-                // Second deployment: 'SniEnabled' to bind cert (createGatewayCertificate=false)
-                bindingType: createGatewayCertificate ? 'Disabled' : 'SniEnabled'
-                // Only bind certificate on second deployment
-                certificateId: createGatewayCertificate ? null : existingGatewayCertificate.id
+                // Stage 1: Add hostname without SSL to enable certificate creation
+                bindingType: 'Disabled'
               }
             ]
           : []
