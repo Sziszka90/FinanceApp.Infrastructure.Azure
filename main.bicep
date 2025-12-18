@@ -666,8 +666,11 @@ resource containerAppGateway 'Microsoft.App/containerApps@2025-10-02-preview' = 
           ? [
               {
                 name: gatewayCustomDomain
-                certificateId: createGatewayCertificate ? gatewayCertificate.id : existingGatewayCertificate.id
-                bindingType: 'SniEnabled'
+                // When creating cert: add hostname without SSL to enable cert creation
+                // When cert exists: bind with SSL
+                bindingType: createGatewayCertificate ? 'Disabled' : 'SniEnabled'
+                // Only set certificateId when using existing cert
+                certificateId: createGatewayCertificate ? null : existingGatewayCertificate.id
               }
             ]
           : []
