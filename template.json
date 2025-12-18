@@ -372,6 +372,7 @@
           "scale": {
             "minReplicas": 0,
             "maxReplicas": 10,
+            "cooldownPeriod": 300,
             "rules": [
               {
                 "name": "http-scaler",
@@ -434,6 +435,7 @@
           "scale": {
             "minReplicas": 0,
             "maxReplicas": 10,
+            "cooldownPeriod": 300,
             "rules": [
               {
                 "name": "http-scaler",
