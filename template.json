@@ -380,9 +380,7 @@
                   "metadata": {
                     "concurrentRequests": "10"
                   }
-                },
-                "cooldownPeriod": "300",
-                "pollingInterval": "30"
+                }
               }
             ]
           }
