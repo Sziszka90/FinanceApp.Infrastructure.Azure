@@ -2,14 +2,6 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-08-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "environment": {
-      "type": "string",
-      "defaultValue": "production",
-      "allowedValues": ["development", "staging", "production"],
-      "metadata": {
-        "description": "Environment name"
-      }
-    },
     "location": {
       "type": "string",
       "defaultValue": "polandcentral",
@@ -106,11 +98,25 @@
     "gatewayImageTag": {
       "type": "string",
       "defaultValue": "latest"
+    },
+    "environment": {
+      "type": "string",
+      "defaultValue": "production",
+      "allowedValues": ["development", "staging", "production"],
+      "metadata": {
+        "description": "Environment name for resource tagging"
+      }
     }
   },
   "variables": {
     "resourcePrefix": "finance-app",
     "managedEnvironmentName": "FinanceApp",
+    "commonTags": {
+      "Environment": "[parameters('environment')]",
+      "Project": "FinanceApp",
+      "ManagedBy": "ARM-Template",
+      "CostCenter": "Finance"
+    },
     "logAnalyticsWorkspaceName": "[concat(variables('resourcePrefix'), '-logs')]",
     "sqlServerName": "projects-server-sziszka90",
     "sqlDatabaseName": "FinanceAppDB",
@@ -128,6 +134,7 @@
       "apiVersion": "2025-07-01",
       "name": "[variables('logAnalyticsWorkspaceName')]",
       "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
       "properties": {
         "sku": {
           "name": "PerGB2018"
@@ -150,6 +157,7 @@
       "apiVersion": "2026-01-01",
       "name": "[variables('managedEnvironmentName')]",
       "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
       "dependsOn": [
         "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName'))]"
       ],
@@ -175,6 +183,7 @@
       "apiVersion": "2023-08-01",
       "name": "[variables('sqlServerName')]",
       "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
       "properties": {
         "administratorLogin": "[parameters('sqlAdministratorLogin')]",
         "administratorLoginPassword": "[parameters('sqlAdministratorPassword')]",
@@ -189,6 +198,7 @@
       "apiVersion": "2023-08-01",
       "name": "[concat(variables('sqlServerName'), '/', variables('sqlDatabaseName'))]",
       "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
       "dependsOn": [
         "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
       ],
@@ -213,15 +223,29 @@
       }
     },
     {
+      "type": "Microsoft.Sql/servers/firewallRules",
+      "apiVersion": "2023-08-01",
+      "name": "[concat(variables('sqlServerName'), '/AllowAzureServices')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
+      ],
+      "properties": {
+        "startIpAddress": "0.0.0.0",
+        "endIpAddress": "0.0.0.0"
+      }
+    },
+    {
       "type": "Microsoft.App/containerApps",
       "apiVersion": "2026-01-01",
       "name": "[variables('containerAppBackendName')]",
       "location": "[parameters('location')]",
+      "tags": "[union(variables('commonTags'), createObject('Component', 'Backend', 'Service', variables('containerAppBackendName')))]",
       "dependsOn": [
         "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
         "[resourceId('Microsoft.Sql/servers/databases', variables('sqlServerName'), variables('sqlDatabaseName'))]",
         "[resourceId('Microsoft.App/containerApps', variables('containerAppCacheName'))]",
-        "[resourceId('Microsoft.App/containerApps', variables('containerAppRabbitMQName'))]"
+        "[resourceId('Microsoft.App/containerApps', variables('containerAppRabbitMQName'))]",
+        "[resourceId('Microsoft.App/containerApps', variables('containerAppLLMProcessorName'))]"
       ],
       "properties": {
         "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
@@ -397,6 +421,7 @@
       "apiVersion": "2026-01-01",
       "name": "[variables('containerAppFrontendName')]",
       "location": "[parameters('location')]",
+      "tags": "[union(variables('commonTags'), createObject('Component', 'Frontend', 'Service', variables('containerAppFrontendName')))]",
       "dependsOn": [
         "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]"
       ],
@@ -460,6 +485,7 @@
       "apiVersion": "2026-01-01",
       "name": "[variables('containerAppCacheName')]",
       "location": "[parameters('location')]",
+      "tags": "[union(variables('commonTags'), createObject('Component', 'Cache', 'Service', variables('containerAppCacheName')))]",
       "dependsOn": [
         "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]"
       ],
@@ -508,6 +534,7 @@
       "apiVersion": "2026-01-01",
       "name": "[variables('containerAppRabbitMQName')]",
       "location": "[parameters('location')]",
+      "tags": "[union(variables('commonTags'), createObject('Component', 'Messaging', 'Service', variables('containerAppRabbitMQName')))]",
       "dependsOn": [
         "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]"
       ],
@@ -561,6 +588,7 @@
       "apiVersion": "2026-01-01",
       "name": "[variables('containerAppLLMProcessorName')]",
       "location": "[parameters('location')]",
+      "tags": "[union(variables('commonTags'), createObject('Component', 'AI', 'Service', variables('containerAppLLMProcessorName')))]",
       "dependsOn": [
         "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]"
       ],
@@ -634,6 +662,7 @@
       "apiVersion": "2026-01-01",
       "name": "[variables('containerAppGatewayName')]",
       "location": "[parameters('location')]",
+      "tags": "[union(variables('commonTags'), createObject('Component', 'Gateway', 'Service', variables('containerAppGatewayName')))]",
       "dependsOn": [
         "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
         "[resourceId('Microsoft.App/containerApps', variables('containerAppFrontendName'))]"
