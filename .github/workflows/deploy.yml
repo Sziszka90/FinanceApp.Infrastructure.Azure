@@ -78,6 +78,15 @@ jobs:
               "authenticationSecretKey": {
                 "value": "${{ secrets.AUTH_SECRET_KEY }}"
               },
+              "authenticationAudience": {
+                "value": "${{ vars.AUDIENCE }}"
+              },
+              "authenticationIssuer": {
+                "value": "${{ vars.ISSUER }}"
+              },
+              "smtpHost": {
+                "value": "${{ vars.SMTP_HOST }}"
+              },
               "smtpUser": {
                 "value": "${{ secrets.SMTP_USER }}"
               },
@@ -86,6 +95,12 @@ jobs:
               },
               "smtpFromEmail": {
                 "value": "${{ secrets.SMTP_FROM_EMAIL }}"
+              },
+              "exchangeRateApiUrl": {
+                "value": "${{ vars.EXCHANGE_RATE_API_URL }}"
+              },
+              "exchangeRateApiEndpoint": {
+                "value": "${{ vars.EXCHANGE_RATE_API_ENDPOINT }}"
               },
               "exchangeRateApiAppId": {
                 "value": "${{ secrets.EXCHANGE_RATE_API_APP_ID }}"
