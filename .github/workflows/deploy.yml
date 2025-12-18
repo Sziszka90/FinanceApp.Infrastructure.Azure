@@ -1,9 +1,6 @@
 name: Deploy Infrastructure (Bicep)
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       backendImageTag:
@@ -52,6 +49,24 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Check Certificate Existence
+        id: check-cert
+        run: |
+          echo "🔍 Checking if certificate exists..."
+          CERT_COUNT=$(az containerapp env certificate list \
+            --name FinanceApp \
+            --resource-group projects \
+            --query "length([?properties.subjectName=='www.financeapp.fun'])" \
+            --output tsv)
+
+          if [ "$CERT_COUNT" -gt 0 ]; then
+            echo "✅ Certificate exists"
+            echo "createCert=false" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Certificate does not exist"
+            echo "createCert=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Deploy Bicep Template
         uses: azure/arm-deploy@v2
         with:
@@ -84,7 +99,7 @@ jobs:
             frontendImageTag=${{ github.event.inputs.frontendImageTag || 'latest' }}
             llmProcessorImageTag=${{ github.event.inputs.llmProcessorImageTag || 'latest' }}
             gatewayImageTag=${{ github.event.inputs.gatewayImageTag || 'latest' }}
-            createGatewayCertificate=${{ github.event.inputs.bindCertificate || 'false' }}
+            createGatewayCertificate=${{ steps.check-cert.outputs.createCert }}
             environment=production
 
       - name: Display Deployment Outputs
