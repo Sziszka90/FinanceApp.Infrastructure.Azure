@@ -66,7 +66,7 @@ param gatewayImageTag string = 'latest'
 param gatewayCustomDomain string = 'www.financeapp.fun'
 
 @description('Whether to create a new managed certificate (false to use existing)')
-param createGatewayCertificate bool = true
+param createGatewayCertificate bool = false
 
 @description('Environment name for resource tagging')
 @allowed([
