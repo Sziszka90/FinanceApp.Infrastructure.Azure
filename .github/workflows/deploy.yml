@@ -76,7 +76,7 @@ jobs:
                 "value": "${{ secrets.OPENAI_API_KEY }}"
               },
               "authenticationSecretKey": {
-                "value": "${{ secrets.AUTH_SECRET_KEY }}"
+                "value": "${{ secrets.SECRET_KEY }}"
               },
               "authenticationAudience": {
                 "value": "${{ vars.AUDIENCE }}"
@@ -103,19 +103,19 @@ jobs:
                 "value": "${{ vars.EXCHANGE_RATE_API_ENDPOINT }}"
               },
               "exchangeRateApiAppId": {
-                "value": "${{ secrets.EXCHANGE_RATE_API_APP_ID }}"
+                "value": "${{ secrets.EXCHANGE_RATE_APP_ID }}"
               },
               "rabbitMqUsername": {
-                "value": "${{ secrets.RABBITMQ_USERNAME }}"
+                "value": "${{ secrets.RABBITMQ_USER }}"
               },
               "rabbitMqPassword": {
-                "value": "${{ secrets.RABBITMQ_PASSWORD }}"
+                "value": "${{ secrets.RABBITMQ_PASS }}"
               },
               "redisPassword": {
                 "value": "${{ secrets.REDIS_PASSWORD }}"
               },
               "llmProcessorApiToken": {
-                "value": "${{ secrets.LLM_PROCESSOR_API_TOKEN }}"
+                "value": "${{ secrets.LLM_PROCESSOR_TOKEN }}"
               },
               "backendImageTag": {
                 "value": "${{ github.event.inputs.backend_image_tag || 'latest' }}"
