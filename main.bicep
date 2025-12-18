@@ -68,6 +68,9 @@ param gatewayCustomDomain string = 'www.financeapp.fun'
 @description('Whether to create a new managed certificate (false to use existing)')
 param createGatewayCertificate bool = false
 
+@description('Existing certificate name (only needed if createGatewayCertificate=false)')
+param existingCertificateName string = 'www.financeapp.fun-financea-250716082037'
+
 @description('Environment name for resource tagging')
 @allowed([
   'development'
@@ -157,7 +160,7 @@ resource gatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificat
 // Reference existing certificate (if not creating new)
 resource existingGatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2023-05-01' existing = if (!empty(gatewayCustomDomain) && !createGatewayCertificate) {
   parent: managedEnvironment
-  name: gatewayCustomDomain
+  name: existingCertificateName
 }
 
 // SQL Server
