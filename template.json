@@ -219,7 +219,9 @@
       "location": "[parameters('location')]",
       "dependsOn": [
         "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
-        "[resourceId('Microsoft.Sql/servers/databases', variables('sqlServerName'), variables('sqlDatabaseName'))]"
+        "[resourceId('Microsoft.Sql/servers/databases', variables('sqlServerName'), variables('sqlDatabaseName'))]",
+        "[resourceId('Microsoft.App/containerApps', variables('containerAppCacheName'))]",
+        "[resourceId('Microsoft.App/containerApps', variables('containerAppRabbitMQName'))]"
       ],
       "properties": {
         "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
@@ -456,6 +458,107 @@
     {
       "type": "Microsoft.App/containerApps",
       "apiVersion": "2026-01-01",
+      "name": "[variables('containerAppCacheName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]"
+      ],
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
+        "workloadProfileName": "Consumption",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "ingress": {
+            "external": false,
+            "targetPort": 6379,
+            "transport": "tcp"
+          },
+          "secrets": [
+            {
+              "name": "redis-password",
+              "value": "[parameters('redisPassword')]"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "redis",
+              "image": "docker.io/redis:latest",
+              "command": [
+                "redis-server",
+                "--requirepass",
+                "[parameters('redisPassword')]"
+              ],
+              "resources": {
+                "cpu": 0.25,
+                "memory": "0.5Gi"
+              }
+            }
+          ],
+          "scale": {
+            "minReplicas": 1,
+            "maxReplicas": 1
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2026-01-01",
+      "name": "[variables('containerAppRabbitMQName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]"
+      ],
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
+        "workloadProfileName": "Consumption",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "ingress": {
+            "external": false,
+            "targetPort": 5672,
+            "transport": "tcp"
+          },
+          "secrets": [
+            {
+              "name": "rabbitmq-password",
+              "value": "[parameters('rabbitMqPassword')]"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "rabbitmq",
+              "image": "docker.io/rabbitmq:3-management",
+              "env": [
+                {
+                  "name": "RABBITMQ_DEFAULT_USER",
+                  "value": "[parameters('rabbitMqUsername')]"
+                },
+                {
+                  "name": "RABBITMQ_DEFAULT_PASS",
+                  "secretRef": "rabbitmq-password"
+                }
+              ],
+              "resources": {
+                "cpu": 0.5,
+                "memory": "1Gi"
+              }
+            }
+          ],
+          "scale": {
+            "minReplicas": 1,
+            "maxReplicas": 1
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2026-01-01",
       "name": "[variables('containerAppLLMProcessorName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -619,6 +722,14 @@
     "llmProcessorUrl": {
       "type": "string",
       "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppLLMProcessorName')), '2026-01-01').configuration.ingress.fqdn]"
+    },
+    "cacheUrl": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppCacheName')), '2026-01-01').configuration.ingress.fqdn]"
+    },
+    "rabbitMqUrl": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppRabbitMQName')), '2026-01-01').configuration.ingress.fqdn]"
     }
   }
 }
