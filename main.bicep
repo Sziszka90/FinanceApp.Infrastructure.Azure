@@ -90,7 +90,7 @@ var cacheConnectionString = '${containerAppCacheName}:6379,password=${redisPassw
 // Resources
 
 // Log Analytics Workspace
-resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2025-07-01' = {
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: logAnalyticsWorkspaceName
   location: location
   tags: commonTags
@@ -113,7 +113,7 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2025-07
 }
 
 // Managed Environment
-resource managedEnvironment 'Microsoft.App/managedEnvironments@2026-01-01' = {
+resource managedEnvironment 'Microsoft.App/managedEnvironments@2023-05-01' = {
   name: managedEnvironmentName
   location: location
   tags: commonTags
@@ -188,7 +188,7 @@ resource sqlFirewallRule 'Microsoft.Sql/servers/firewallRules@2023-08-01' = {
 }
 
 // Cache Container App (Redis)
-resource containerAppCache 'Microsoft.App/containerApps@2026-01-01' = {
+resource containerAppCache 'Microsoft.App/containerApps@2023-05-01' = {
   name: containerAppCacheName
   location: location
   tags: union(commonTags, {
@@ -237,7 +237,7 @@ resource containerAppCache 'Microsoft.App/containerApps@2026-01-01' = {
 }
 
 // RabbitMQ Container App
-resource containerAppRabbitMQ 'Microsoft.App/containerApps@2026-01-01' = {
+resource containerAppRabbitMQ 'Microsoft.App/containerApps@2023-05-01' = {
   name: containerAppRabbitMQName
   location: location
   tags: union(commonTags, {
@@ -291,7 +291,7 @@ resource containerAppRabbitMQ 'Microsoft.App/containerApps@2026-01-01' = {
 }
 
 // LLM Processor Container App
-resource containerAppLLMProcessor 'Microsoft.App/containerApps@2026-01-01' = {
+resource containerAppLLMProcessor 'Microsoft.App/containerApps@2023-05-01' = {
   name: containerAppLLMProcessorName
   location: location
   tags: union(commonTags, {
@@ -365,7 +365,7 @@ resource containerAppLLMProcessor 'Microsoft.App/containerApps@2026-01-01' = {
 }
 
 // Backend Container App
-resource containerAppBackend 'Microsoft.App/containerApps@2026-01-01' = {
+resource containerAppBackend 'Microsoft.App/containerApps@2023-05-01' = {
   name: containerAppBackendName
   location: location
   tags: union(commonTags, {
@@ -549,7 +549,7 @@ resource containerAppBackend 'Microsoft.App/containerApps@2026-01-01' = {
 }
 
 // Frontend Container App
-resource containerAppFrontend 'Microsoft.App/containerApps@2026-01-01' = {
+resource containerAppFrontend 'Microsoft.App/containerApps@2023-05-01' = {
   name: containerAppFrontendName
   location: location
   tags: union(commonTags, {
@@ -613,7 +613,7 @@ resource containerAppFrontend 'Microsoft.App/containerApps@2026-01-01' = {
 }
 
 // Gateway Container App
-resource containerAppGateway 'Microsoft.App/containerApps@2026-01-01' = {
+resource containerAppGateway 'Microsoft.App/containerApps@2023-05-01' = {
   name: containerAppGatewayName
   location: location
   tags: union(commonTags, {
