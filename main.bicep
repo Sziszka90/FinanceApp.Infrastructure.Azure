@@ -62,6 +62,9 @@ param frontendImageTag string = 'latest'
 param llmProcessorImageTag string = 'latest'
 param gatewayImageTag string = 'latest'
 
+@description('Custom domain for gateway (leave empty to use default)')
+param gatewayCustomDomain string = 'https://www.financeapp.fun'
+
 @description('Environment name for resource tagging')
 @allowed([
   'development'
@@ -636,6 +639,15 @@ resource containerAppGateway 'Microsoft.App/containerApps@2025-10-02-preview' = 
         targetPort: 8080
         transport: 'http'
         allowInsecure: false
+        customDomains: !empty(gatewayCustomDomain)
+          ? [
+              {
+                name: gatewayCustomDomain
+                bindingType: 'SniEnabled'
+                certificateId: '${managedEnvironment.id}/managedCertificates/${gatewayCustomDomain}'
+              }
+            ]
+          : []
       }
       registries: [
         {
