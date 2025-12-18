@@ -381,7 +381,8 @@
                     "concurrentRequests": "10"
                   }
                 },
-                "cooldownPeriod": 300
+                "cooldownPeriod": 300,
+                "pollingInterval": "30"
               }
             ]
           }
@@ -443,7 +444,8 @@
                     "concurrentRequests": "10"
                   }
                 },
-                "cooldownPeriod": 300
+                "cooldownPeriod": 300,
+                "pollingInterval": "30"
               }
             ]
           }
