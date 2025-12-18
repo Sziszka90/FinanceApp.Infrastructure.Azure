@@ -65,6 +65,9 @@ param gatewayImageTag string = 'latest'
 @description('Custom domain for gateway (leave empty to use default)')
 param gatewayCustomDomain string = 'www.financeapp.fun'
 
+@description('Whether to create a new managed certificate (false to use existing)')
+param createGatewayCertificate bool = false
+
 @description('Environment name for resource tagging')
 @allowed([
   'development'
@@ -140,8 +143,8 @@ resource managedEnvironment 'Microsoft.App/managedEnvironments@2023-05-01' = {
   }
 }
 
-// Managed Certificate for Gateway Custom Domain
-resource gatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2023-05-01' = if (!empty(gatewayCustomDomain)) {
+// Managed Certificate for Gateway (only if creating new)
+resource gatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2023-05-01' = if (!empty(gatewayCustomDomain) && createGatewayCertificate) {
   parent: managedEnvironment
   name: gatewayCustomDomain
   location: location
@@ -149,6 +152,12 @@ resource gatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificat
     subjectName: gatewayCustomDomain
     domainControlValidation: 'CNAME'
   }
+}
+
+// Reference existing certificate (if not creating new)
+resource existingGatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2023-05-01' existing = if (!empty(gatewayCustomDomain) && !createGatewayCertificate) {
+  parent: managedEnvironment
+  name: gatewayCustomDomain
 }
 
 // SQL Server
@@ -655,7 +664,7 @@ resource containerAppGateway 'Microsoft.App/containerApps@2025-10-02-preview' = 
               {
                 name: gatewayCustomDomain
                 bindingType: 'SniEnabled'
-                certificateId: gatewayCertificate.id
+                certificateId: createGatewayCertificate ? gatewayCertificate.id : existingGatewayCertificate.id
               }
             ]
           : []
