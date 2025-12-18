@@ -157,13 +157,13 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy Stage 2 - Bind SSL Certificate
+      - name: Deploy Stage - Bind SSL Certificate
         uses: azure/arm-deploy@v2
         with:
           resourceGroupName: projects
-          template: ./stage2-cert-binding.bicep
+          template: ./cert-binding.bicep
           deploymentMode: Incremental
-          deploymentName: bicep-stage2-${{ github.run_number }}
+          deploymentName: bicep-cert-binding-${{ github.run_number }}
           parameters: >
             containerRegistryUsername=${{ secrets.GHCR_USERNAME }}
             containerRegistryPassword=${{ secrets.GHCR_PAT }}
@@ -174,9 +174,9 @@ jobs:
             gatewayImageTag=${{ github.event.inputs.gatewayImageTag || 'latest' }}
             environment=production
 
-      - name: Display Stage 2 Outputs
+      - name: Display Cert Binding Stage Outputs
         run: |
-          echo "✅ Stage 2 - SSL Certificate binding completed!"
+          echo "✅ Cert Binding Stage - SSL Certificate binding completed!"
           echo ""
           echo "🔒 Custom Domain with SSL:"
           echo "Gateway with SSL: https://www.financeapp.fun"
