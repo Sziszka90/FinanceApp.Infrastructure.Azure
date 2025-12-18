@@ -65,11 +65,11 @@ param gatewayImageTag string = 'latest'
 @description('Custom domain for gateway (leave empty to use default)')
 param gatewayCustomDomain string = 'www.financeapp.fun'
 
-@description('Whether to create a new managed certificate (false to use existing)')
-param createGatewayCertificate bool = false
+@description('Certificate name (resource name, can differ from domain)')
+param certificateName string = 'www.financeapp.fun'
 
-@description('Existing certificate name (only needed if createGatewayCertificate=false)')
-param existingCertificateName string = 'www.financeapp.fun-financea-250716082037'
+@description('Whether to create a new managed certificate (false to use existing)')
+param createGatewayCertificate bool = true
 
 @description('Environment name for resource tagging')
 @allowed([
@@ -149,7 +149,7 @@ resource managedEnvironment 'Microsoft.App/managedEnvironments@2023-05-01' = {
 // Managed Certificate for Gateway (only if creating new)
 resource gatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2023-05-01' = if (!empty(gatewayCustomDomain) && createGatewayCertificate) {
   parent: managedEnvironment
-  name: gatewayCustomDomain
+  name: certificateName
   location: location
   properties: {
     subjectName: gatewayCustomDomain
@@ -160,7 +160,7 @@ resource gatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificat
 // Reference existing certificate (if not creating new)
 resource existingGatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2023-05-01' existing = if (!empty(gatewayCustomDomain) && !createGatewayCertificate) {
   parent: managedEnvironment
-  name: existingCertificateName
+  name: certificateName
 }
 
 // SQL Server
