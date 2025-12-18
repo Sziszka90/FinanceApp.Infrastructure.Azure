@@ -119,7 +119,6 @@
     "containerAppCacheName": "finance-app-cache",
     "containerAppRabbitMQName": "finance-app-rabbitmq",
     "containerAppLLMProcessorName": "finance-app-llmprocessor",
-    "sqlConnectionString": "[concat('Server=tcp:', reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName')), '2023-08-01-preview').fullyQualifiedDomainName, ',1433;Initial Catalog=', variables('sqlDatabaseName'), ';Persist Security Info=False;User ID=', parameters('sqlAdministratorLogin'), ';Password=', parameters('sqlAdministratorPassword'), ';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;')]",
     "cacheConnectionString": "[concat(variables('containerAppCacheName'), ':6379,password=', parameters('redisPassword'))]"
   },
   "resources": [
@@ -273,7 +272,7 @@
             },
             {
               "name": "sql-connection-string",
-              "value": "[variables('sqlConnectionString')]"
+              "value": "[concat('Server=tcp:', reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName')), '2023-08-01-preview').fullyQualifiedDomainName, ',1433;Initial Catalog=', variables('sqlDatabaseName'), ';Persist Security Info=False;User ID=', parameters('sqlAdministratorLogin'), ';Password=', parameters('sqlAdministratorPassword'), ';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;')]"
             }
           ]
         },
