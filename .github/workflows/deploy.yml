@@ -94,7 +94,7 @@ jobs:
             rabbitMqHost=${{ vars.RABBITMQ_HOST }}
             rabbitMqPort=${{ vars.RABBITMQ_PORT }}
             redisPassword=${{ secrets.REDIS_PASSWORD }}
-            dbConnectionString=${{ secrets.DB_CONNECTION_STRING }}
+            dbConnectionString="${{ secrets.DB_CONNECTION_STRING }}"
             redisConnectionString=${{ secrets.CACHE_CONNECTION_STRING }}
             llmProcessorApiToken=${{ secrets.LLM_PROCESSOR_TOKEN }}
             llmProcessorApiUrl=${{ vars.LLM_PROCESSOR_API_URL }}
