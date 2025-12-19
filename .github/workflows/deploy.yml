@@ -91,6 +91,8 @@ jobs:
             exchangeRateApiAppId=${{ secrets.EXCHANGE_RATE_APP_ID }}
             rabbitMqUsername=${{ secrets.RABBITMQ_USER }}
             rabbitMqPassword=${{ secrets.RABBITMQ_PASS }}
+            rabbitMqHost=${{ vars.RABBITMQ_HOST }}
+            rabbitMqPort=${{ vars.RABBITMQ_PORT }}
             redisPassword=${{ secrets.REDIS_PASSWORD }}
             redisConnectionString=${{ secrets.CACHE_CONNECTION_STRING }}
             llmProcessorApiToken=${{ secrets.LLM_PROCESSOR_TOKEN }}

@@ -44,6 +44,8 @@ param exchangeRateApiEndpoint string
 param exchangeRateApiAppId string
 
 param rabbitMqUsername string
+param rabbitMqHost string
+param rabbitMqPort string
 
 @secure()
 param rabbitMqPassword string
@@ -356,6 +358,14 @@ resource containerAppLLMProcessor 'Microsoft.App/containerApps@2025-10-02-previe
           name: 'llm-processor-api-token'
           value: llmProcessorApiToken
         }
+        {
+          name: 'openai-api-key'
+          value: openAiApiKey
+        }
+        {
+          name: 'rabbitmq-password'
+          value: rabbitMqPassword
+        }
       ]
     }
     template: {
@@ -367,6 +377,30 @@ resource containerAppLLMProcessor 'Microsoft.App/containerApps@2025-10-02-previe
             {
               name: 'ApiToken'
               secretRef: 'llm-processor-api-token'
+            }
+            {
+              name: 'LLM_API_KEY'
+              secretRef: 'openai-api-key'
+            }
+            {
+              name: 'RABBITMQ_HOST'
+              value: rabbitMqHost
+            }
+            {
+              name: 'RABBITMQ_PORT'
+              value: rabbitMqPort
+            }
+            {
+              name: 'RABBITMQ_USER'
+              value: rabbitMqUsername
+            }
+            {
+              name: 'RABBITMQ_PASS'
+              secretRef: 'rabbitmq-password'
+            }
+            {
+              name: 'RABBITMQ_VHOST'
+              value: '/'
             }
           ]
           resources: {
