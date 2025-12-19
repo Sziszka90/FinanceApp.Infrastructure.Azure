@@ -1,4 +1,4 @@
-name: Deploy Infrastructure (Bicep)
+name: Deploy Infrastructure
 
 on:
   push:
@@ -66,13 +66,13 @@ jobs:
             echo "createCert=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Deploy Bicep Template
+      - name: Deploy Template
         uses: azure/arm-deploy@v2
         with:
           resourceGroupName: projects
           template: ./main.bicep
           deploymentMode: Incremental
-          deploymentName: bicep-deploy-${{ github.run_number }}
+          deploymentName: deploy-${{ github.run_number }}
           parameters: >
             sqlAdministratorLogin=${{ secrets.SQL_ADMIN_LOGIN }}
             sqlAdministratorPassword=${{ secrets.SQL_ADMIN_PASSWORD }}
@@ -105,12 +105,12 @@ jobs:
         id: get-outputs
         run: |
           echo "✅ Deployment completed successfully!"
-          echo "Deployment name: bicep-deploy-${{ github.run_number }}"
+          echo "Deployment name: deploy-${{ github.run_number }}"
 
           # Get deployment outputs
           az deployment group show \
             --resource-group projects \
-            --name bicep-deploy-${{ github.run_number }} \
+            --name deploy-${{ github.run_number }} \
             --query properties.outputs \
             --output json > deployment-outputs.json
 
@@ -158,7 +158,7 @@ jobs:
           resourceGroupName: projects
           template: ./cert-binding.bicep
           deploymentMode: Incremental
-          deploymentName: bicep-cert-binding-${{ github.run_number }}
+          deploymentName: cert-binding-${{ github.run_number }}
           parameters: >
             containerRegistryUsername=${{ secrets.GHCR_USERNAME }}
             containerRegistryPassword=${{ secrets.GHCR_PAT }}

@@ -47,8 +47,8 @@ var managedEnvironmentName = 'FinanceApp'
 var commonTags = {
   Environment: environment
   Project: 'FinanceApp'
-  ManagedBy: 'Bicep'
-  CostCenter: 'FinanceTeam'
+  ManagedBy: 'Bicep-Template'
+  CostCenter: 'Finance'
 }
 
 // Reference existing managed environment
