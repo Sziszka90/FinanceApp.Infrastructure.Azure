@@ -94,8 +94,11 @@ jobs:
             rabbitMqHost=${{ vars.RABBITMQ_HOST }}
             rabbitMqPort=${{ vars.RABBITMQ_PORT }}
             redisPassword=${{ secrets.REDIS_PASSWORD }}
+            dbConnectionString=${{ secrets.DB_CONNECTION_STRING }}
             redisConnectionString=${{ secrets.CACHE_CONNECTION_STRING }}
             llmProcessorApiToken=${{ secrets.LLM_PROCESSOR_TOKEN }}
+            llmProcessorApiUrl=${{ vars.LLM_PROCESSOR_API_URL }}
+            mcpApiBaseUrl=${{ vars.MCP_API_BASE_URL }}
             backendImageTag=${{ github.event.inputs.backendImageTag || 'latest' }}
             frontendImageTag=${{ github.event.inputs.frontendImageTag || 'latest' }}
             llmProcessorImageTag=${{ github.event.inputs.llmProcessorImageTag || 'latest' }}

@@ -23,6 +23,9 @@ param containerRegistryPassword string
 param openAiApiKey string
 
 @secure()
+param dbConnectionString string
+
+@secure()
 param authenticationSecretKey string
 
 param authenticationAudience string
@@ -31,6 +34,8 @@ param authenticationIssuer string
 param smtpHost string
 param smtpPort int = 587
 param smtpUser string
+
+param llmProcessorApiUrl string
 
 @secure()
 param smtpPassword string
@@ -58,6 +63,8 @@ param redisPassword string
 
 @secure()
 param llmProcessorApiToken string
+
+param mcpApiBaseUrl string
 
 param backendImageTag string = 'latest'
 param frontendImageTag string = 'latest'
@@ -366,6 +373,10 @@ resource containerAppLLMProcessor 'Microsoft.App/containerApps@2025-10-02-previe
           name: 'rabbitmq-password'
           value: rabbitMqPassword
         }
+        {
+          name: 'db-connection-string'
+          value: dbConnectionString
+        }
       ]
     }
     template: {
@@ -375,12 +386,16 @@ resource containerAppLLMProcessor 'Microsoft.App/containerApps@2025-10-02-previe
           image: '${containerRegistryServer}/sziszka90/${containerAppLLMProcessorName}:${llmProcessorImageTag}'
           env: [
             {
-              name: 'ApiToken'
+              name: 'API_TOKEN'
               secretRef: 'llm-processor-api-token'
             }
             {
               name: 'LLM_API_KEY'
               secretRef: 'openai-api-key'
+            }
+            {
+              name: 'CONNECTION_STRING'
+              secretRef: 'db-connection-string'
             }
             {
               name: 'RABBITMQ_HOST'
@@ -401,6 +416,10 @@ resource containerAppLLMProcessor 'Microsoft.App/containerApps@2025-10-02-previe
             {
               name: 'RABBITMQ_VHOST'
               value: '/'
+            }
+            {
+              name: 'MCP_API_BASE_URL'
+              value: mcpApiBaseUrl
             }
           ]
           resources: {
@@ -494,7 +513,7 @@ resource containerAppBackend 'Microsoft.App/containerApps@2025-10-02-preview' = 
         }
         {
           name: 'sql-connection-string'
-          value: 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabaseName};Persist Security Info=False;User ID=${sqlAdministratorLogin};Password=${sqlAdministratorPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+          value: dbConnectionString
         }
       ]
     }
@@ -507,6 +526,10 @@ resource containerAppBackend 'Microsoft.App/containerApps@2025-10-02-preview' = 
             {
               name: 'ConnectionStrings__MsSql'
               secretRef: 'sql-connection-string'
+            }
+            {
+              name: 'CacheSettings__ConnectionString'
+              secretRef: 'cache-connection-string'
             }
             {
               name: 'LLMClientSettings__ApiKey'
@@ -558,11 +581,11 @@ resource containerAppBackend 'Microsoft.App/containerApps@2025-10-02-preview' = 
             }
             {
               name: 'RabbitMqSettings__HostName'
-              value: containerAppRabbitMQName
+              value: rabbitMqHost
             }
             {
               name: 'RabbitMqSettings__Port'
-              value: '5672'
+              value: rabbitMqPort
             }
             {
               name: 'RabbitMqSettings__UserName'
@@ -578,11 +601,7 @@ resource containerAppBackend 'Microsoft.App/containerApps@2025-10-02-preview' = 
             }
             {
               name: 'LLMProcessorSettings__ApiUrl'
-              value: 'http://${containerAppLLMProcessorName}'
-            }
-            {
-              name: 'CacheSettings__ConnectionString'
-              value: '${containerAppCacheName}:6379,password=${redisPassword}'
+              value: llmProcessorApiUrl
             }
           ]
           resources: {
