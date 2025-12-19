@@ -390,7 +390,7 @@ resource containerAppLLMProcessor 'Microsoft.App/containerApps@2025-10-02-previe
               secretRef: 'llm-processor-api-token'
             }
             {
-              name: 'LLM_API_KEY'
+              name: 'OPENAI_API_KEY'
               secretRef: 'openai-api-key'
             }
             {
