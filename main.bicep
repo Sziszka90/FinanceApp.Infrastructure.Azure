@@ -261,7 +261,7 @@ resource containerAppCache 'Microsoft.App/containerApps@2025-10-02-preview' = {
         }
       ]
       scale: {
-        minReplicas: 1
+        minReplicas: 0
         maxReplicas: 1
       }
     }
@@ -315,7 +315,7 @@ resource containerAppRabbitMQ 'Microsoft.App/containerApps@2025-10-02-preview' =
         }
       ]
       scale: {
-        minReplicas: 1
+        minReplicas: 0
         maxReplicas: 1
       }
     }
