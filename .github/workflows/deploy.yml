@@ -22,11 +22,6 @@ on:
         description: "Gateway image tag"
         required: false
         default: "latest"
-      bindCertificate:
-        description: "Bind SSL certificate to custom domain"
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   id-token: write
@@ -143,7 +138,7 @@ jobs:
 
   bind-certificate:
     needs: deploy
-    if: needs.deploy.outputs.createCert == 'true' || github.event.inputs.bindCertificate == 'true'
+    if: needs.deploy.outputs.createCert == 'true'
     runs-on: ubuntu-latest
 
     steps:
