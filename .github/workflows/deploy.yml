@@ -104,6 +104,7 @@ jobs:
             llmProcessorImageTag=${{ github.event.inputs.llmProcessorImageTag || 'latest' }}
             gatewayImageTag=${{ github.event.inputs.gatewayImageTag || 'latest' }}
             createGatewayCertificate=${{ steps.check-cert.outputs.createCert }}
+            revisionSuffix=${{ github.run_number }}
             environment=production
 
       - name: Display Deployment Outputs

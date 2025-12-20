@@ -66,6 +66,9 @@ param llmProcessorApiToken string
 
 param mcpApiBaseUrl string
 
+@description('Revision suffix to force new deployment')
+param revisionSuffix string = utcNow('yyyyMMddHHmmss')
+
 param backendImageTag string = 'latest'
 param frontendImageTag string = 'latest'
 param llmProcessorImageTag string = 'latest'
@@ -254,6 +257,7 @@ resource containerAppCache 'Microsoft.App/containerApps@2025-10-02-preview' = {
       ]
     }
     template: {
+      revisionSuffix: revisionSuffix
       containers: [
         {
           name: 'redis'
@@ -303,6 +307,7 @@ resource containerAppRabbitMQ 'Microsoft.App/containerApps@2025-10-02-preview' =
       ]
     }
     template: {
+      revisionSuffix: revisionSuffix
       containers: [
         {
           name: 'rabbitmq'
@@ -380,6 +385,7 @@ resource containerAppLLMProcessor 'Microsoft.App/containerApps@2025-10-02-previe
       ]
     }
     template: {
+      revisionSuffix: revisionSuffix
       containers: [
         {
           name: 'llmprocessor'
@@ -518,6 +524,7 @@ resource containerAppBackend 'Microsoft.App/containerApps@2025-10-02-preview' = 
       ]
     }
     template: {
+      revisionSuffix: revisionSuffix
       containers: [
         {
           name: 'backend'
@@ -671,6 +678,7 @@ resource containerAppFrontend 'Microsoft.App/containerApps@2025-10-02-preview' =
       ]
     }
     template: {
+      revisionSuffix: revisionSuffix
       containers: [
         {
           name: 'frontend'
@@ -753,6 +761,7 @@ resource containerAppGateway 'Microsoft.App/containerApps@2025-10-02-preview' = 
       ]
     }
     template: {
+      revisionSuffix: revisionSuffix
       containers: [
         {
           name: 'gateway'
