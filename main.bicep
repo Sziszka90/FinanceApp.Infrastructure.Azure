@@ -346,7 +346,7 @@ resource containerAppLLMProcessor 'Microsoft.App/containerApps@2025-10-02-previe
       activeRevisionsMode: 'Single'
       ingress: {
         external: false
-        targetPort: 8080
+        targetPort: 8000
         transport: 'http'
       }
       registries: [
