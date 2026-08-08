@@ -164,7 +164,7 @@ resource containerAppGateway 'Microsoft.App/containerApps@2025-10-02-preview' = 
       containers: [
         {
           name: 'gateway'
-          image: '${containerRegistryServer}/sziszka90/finance-app-gateway:${gatewayImageTag}'
+          image: '${containerRegistryServer}/${containerRegistryUsername}/finance-app-gateway:${gatewayImageTag}'
           resources: {
             cpu: json('0.5')
             memory: '1Gi'

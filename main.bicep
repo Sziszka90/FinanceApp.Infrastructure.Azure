@@ -251,27 +251,8 @@ module frontend './modules/frontend.bicep' = {
   }
 }
 
-resource existingGatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2023-05-01' existing = if (!empty(gatewayCustomDomain) && !createGatewayCertificate) {
-  parent: managedEnvironment
-  name: certificateName
-}
-
-var gatewayCustomDomains = !empty(gatewayCustomDomain)
-  ? (createGatewayCertificate
-      ? [
-          {
-            name: gatewayCustomDomain
-            bindingType: 'Disabled'
-          }
-        ]
-      : [
-          {
-            name: gatewayCustomDomain
-            bindingType: 'SniEnabled'
-            certificateId: existingGatewayCertificate.id
-          }
-        ])
-  : []
+// Certificate creation and binding are completed by cert-binding.bicep after this stage.
+var gatewayCustomDomains = []
 
 module gateway './modules/gateway.bicep' = {
   dependsOn: [

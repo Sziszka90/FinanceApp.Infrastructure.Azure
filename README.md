@@ -118,7 +118,7 @@ The deployment identity must be allowed to create role assignments on the Key Va
 2. **Authenticate** → Uses OIDC authentication with Azure
 3. **Check Certificate** → Verifies if SSL certificate exists
 4. **Deploy Bicep Template** → Provisions all Azure resources
-5. **Bind Certificate** (if needed) → Configures SSL for custom domain
+5. **Bind Certificate** → Creates the SSL binding after the certificate exists, whether it was newly created or already present
 6. **Output URLs** → Returns service endpoints for verification
 
 ## 🤝 Contributing

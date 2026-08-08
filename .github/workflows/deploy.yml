@@ -35,11 +35,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       createCert: ${{ steps.check-cert.outputs.createCert }}
+      managedEnvironmentName: ${{ steps.deployment-config.outputs.managedEnvironmentName }}
       gatewayDomain: ${{ steps.deployment-config.outputs.gatewayDomain }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Read Deployment Configuration
         id: deployment-config
@@ -53,7 +54,7 @@ jobs:
           echo "gatewayDomain=$(jq -r '.parameters.gatewayCustomDomain.value' "$PARAMETERS_FILE")" >> "$GITHUB_OUTPUT"
 
       - name: Azure Login (OIDC)
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -126,19 +127,41 @@ jobs:
 
   bind-certificate:
     needs: deploy
-    if: needs.deploy.outputs.createCert == 'true'
+    if: needs.deploy.result == 'success'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Azure Login (OIDC)
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Wait for Managed Certificate
+        if: needs.deploy.outputs.createCert == 'true'
+        run: |
+          for attempt in {1..30}; do
+            CERT_COUNT=$(az containerapp env certificate list \
+              --name "${{ needs.deploy.outputs.managedEnvironmentName }}" \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --query "length([?properties.subjectName=='${{ needs.deploy.outputs.gatewayDomain }}'])" \
+              --output tsv 2>/dev/null || echo 0)
+
+            if [ "$CERT_COUNT" -gt 0 ]; then
+              echo "Managed certificate resource is available."
+              exit 0
+            fi
+
+            echo "Waiting for managed certificate resource (attempt $attempt/30)..."
+            sleep 10
+          done
+
+          echo "Managed certificate did not become available in time."
+          exit 1
 
       - name: Deploy Stage - Bind SSL Certificate
         uses: azure/arm-deploy@v2
