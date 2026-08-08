@@ -93,7 +93,7 @@ The following versionless Key Vault secrets are read by Container Apps through t
 
 Gateway routing values are not secrets and are not GitHub Actions inputs. The gateway receives `LLM_PROCESSOR_URL`, `BACKEND_URL`, and `FRONTEND_URL` from the `gatewayRoutingEnvironment` variable in the Bicep templates. Those values are derived from the deployed Container App FQDNs, so they stay correct across deployments without maintaining a separate `.env` file.
 
-The deployment identity must be allowed to create role assignments on the Key Vault and read secrets during Bicep deployment. The Key Vault must also allow template deployments. The template grants the Container Apps identity the **Key Vault Secrets User** role. The SQL module reads `sql-admin-login` and `sql-admin-password` during deployment, while the Redis container reads `redis-password` at runtime.
+The GitHub Actions OIDC identity must be allowed to create role assignments on the Key Vault and must have the `Microsoft.KeyVault/vaults/deploy/action` permission on the Key Vault or resource group. **Contributor** or **Owner** includes this deployment action; a least-privilege custom role containing only this action is also suitable. The workflow enables Key Vault template deployment access before running ARM deployment. The template separately grants the Container Apps identity the **Key Vault Secrets User** role for runtime secret reads. The SQL module reads `sql-admin-login` and `sql-admin-password` during deployment, while the Redis container reads `redis-password` at runtime.
 
 ### SQL Network Access
 
