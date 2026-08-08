@@ -27,19 +27,30 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  AZURE_RESOURCE_GROUP: projects
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     outputs:
-      llmProcessorUrl: ${{ steps.get-outputs.outputs.llmProcessorUrl }}
-      backendUrl: ${{ steps.get-outputs.outputs.backendUrl }}
-      frontendUrl: ${{ steps.get-outputs.outputs.frontendUrl }}
-      certificateName: ${{ steps.get-outputs.outputs.certificateName }}
       createCert: ${{ steps.check-cert.outputs.createCert }}
+      gatewayDomain: ${{ steps.deployment-config.outputs.gatewayDomain }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Read Deployment Configuration
+        id: deployment-config
+        run: |
+          PARAMETERS_FILE="$RUNNER_TEMP/main.production.json"
+          az bicep build-params \
+            --file main.production.bicepparam \
+            --outfile "$PARAMETERS_FILE"
+
+          echo "managedEnvironmentName=$(jq -r '.parameters.managedEnvironmentName.value' "$PARAMETERS_FILE")" >> "$GITHUB_OUTPUT"
+          echo "gatewayDomain=$(jq -r '.parameters.gatewayCustomDomain.value' "$PARAMETERS_FILE")" >> "$GITHUB_OUTPUT"
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -53,9 +64,9 @@ jobs:
         run: |
           echo "🔍 Checking if certificate exists..."
           CERT_COUNT=$(az containerapp env certificate list \
-            --name FinanceApp \
-            --resource-group projects \
-            --query "length([?properties.subjectName=='www.financeapp.fun'])" \
+            --name "${{ steps.deployment-config.outputs.managedEnvironmentName }}" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --query "length([?properties.subjectName=='${{ steps.deployment-config.outputs.gatewayDomain }}'])" \
             --output tsv)
 
           if [ "$CERT_COUNT" -gt 0 ]; then
@@ -69,36 +80,13 @@ jobs:
       - name: Deploy Template
         uses: azure/arm-deploy@v2
         with:
-          resourceGroupName: projects
+          scope: resourcegroup
+          resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP }}
           template: ./main.bicep
           deploymentMode: Incremental
           deploymentName: deploy-${{ github.run_number }}
           parameters: >
-            sqlAdministratorLogin=${{ secrets.SQL_ADMIN_LOGIN }}
-            sqlAdministratorPassword=${{ secrets.SQL_ADMIN_PASSWORD }}
-            containerRegistryUsername=${{ secrets.GHCR_USERNAME }}
-            containerRegistryPassword=${{ secrets.GHCR_PAT }}
-            openAiApiKey=${{ secrets.OPENAI_API_KEY }}
-            authenticationSecretKey=${{ secrets.SECRET_KEY }}
-            authenticationAudience=${{ vars.AUDIENCE }}
-            authenticationIssuer=${{ vars.ISSUER }}
-            smtpHost=${{ vars.SMTP_HOST }}
-            smtpUser=${{ secrets.SMTP_USER }}
-            smtpPassword=${{ secrets.SMTP_PASSWORD }}
-            smtpFromEmail=${{ secrets.SMTP_FROM_EMAIL }}
-            exchangeRateApiUrl=${{ vars.EXCHANGE_RATE_API_URL }}
-            exchangeRateApiEndpoint=${{ vars.EXCHANGE_RATE_API_ENDPOINT }}
-            exchangeRateApiAppId=${{ secrets.EXCHANGE_RATE_APP_ID }}
-            rabbitMqUsername=${{ secrets.RABBITMQ_USER }}
-            rabbitMqPassword=${{ secrets.RABBITMQ_PASS }}
-            rabbitMqHost=${{ vars.RABBITMQ_HOST }}
-            rabbitMqPort=${{ vars.RABBITMQ_PORT }}
-            redisPassword=${{ secrets.REDIS_PASSWORD }}
-            dbConnectionString="${{ secrets.DB_CONNECTION_STRING }}"
-            redisConnectionString=${{ secrets.CACHE_CONNECTION_STRING }}
-            llmProcessorApiToken=${{ secrets.LLM_PROCESSOR_TOKEN }}
-            llmProcessorApiUrl=${{ vars.LLM_PROCESSOR_API_URL }}
-            mcpApiBaseUrl=${{ vars.MCP_API_BASE_URL }}
+            ./main.production.bicepparam
             backendImageTag=${{ github.event.inputs.backendImageTag || 'latest' }}
             frontendImageTag=${{ github.event.inputs.frontendImageTag || 'latest' }}
             llmProcessorImageTag=${{ github.event.inputs.llmProcessorImageTag || 'latest' }}
@@ -115,7 +103,7 @@ jobs:
 
           # Get deployment outputs
           az deployment group show \
-            --resource-group projects \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
             --name deploy-${{ github.run_number }} \
             --query properties.outputs \
             --output json > deployment-outputs.json
@@ -136,12 +124,6 @@ jobs:
           echo "SQL Server: $(cat deployment-outputs.json | jq -r '.sqlServerFqdn.value')"
           echo "Log Analytics: $(cat deployment-outputs.json | jq -r '.logAnalyticsWorkspaceId.value')"
 
-          # Set outputs for next job
-          echo "llmProcessorUrl=$(cat deployment-outputs.json | jq -r '.llmProcessorUrl.value')" >> $GITHUB_OUTPUT
-          echo "backendUrl=$(cat deployment-outputs.json | jq -r '.backendUrl.value')" >> $GITHUB_OUTPUT
-          echo "frontendUrl=$(cat deployment-outputs.json | jq -r '.frontendUrl.value')" >> $GITHUB_OUTPUT
-          echo "certificateName=www.financeapp.fun" >> $GITHUB_OUTPUT
-
   bind-certificate:
     needs: deploy
     if: needs.deploy.outputs.createCert == 'true'
@@ -161,23 +143,18 @@ jobs:
       - name: Deploy Stage - Bind SSL Certificate
         uses: azure/arm-deploy@v2
         with:
-          resourceGroupName: projects
+          scope: resourcegroup
+          resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP }}
           template: ./cert-binding.bicep
           deploymentMode: Incremental
           deploymentName: cert-binding-${{ github.run_number }}
           parameters: >
-            containerRegistryUsername=${{ secrets.GHCR_USERNAME }}
-            containerRegistryPassword=${{ secrets.GHCR_PAT }}
-            certificateName=${{ needs.deploy.outputs.certificateName }}
-            llmProcessorUrl=https://${{ needs.deploy.outputs.llmProcessorUrl }}
-            backendUrl=https://${{ needs.deploy.outputs.backendUrl }}
-            frontendUrl=https://${{ needs.deploy.outputs.frontendUrl }}
+            ./cert-binding.production.bicepparam
             gatewayImageTag=${{ github.event.inputs.gatewayImageTag || 'latest' }}
-            environment=production
 
       - name: Display Cert Binding Stage Outputs
         run: |
           echo "✅ Cert Binding Stage - SSL Certificate binding completed!"
           echo ""
           echo "🔒 Custom Domain with SSL:"
-          echo "Gateway with SSL: https://www.financeapp.fun"
+          echo "Gateway with SSL: https://${{ needs.deploy.outputs.gatewayDomain }}"

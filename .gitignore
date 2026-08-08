@@ -6,6 +6,8 @@ parameters.*.json
 
 # Generated parameter files
 parameters.generated.json
+main.production.json
+cert-binding.production.json
 
 # Backup files
 backup.json

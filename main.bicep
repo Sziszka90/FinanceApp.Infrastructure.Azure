@@ -1,122 +1,87 @@
-// FinanceApp Infrastructure - Azure Container Apps
-// Bicep template for deploying microservices architecture
+// FinanceApp infrastructure orchestrator. Service definitions live in individual modules.
 
-// Parameters
-@description('Location for all resources')
-param location string = 'polandcentral'
+type ServiceNames = {
+  cache: string
+  rabbitMq: string
+  llmProcessor: string
+  backend: string
+  frontend: string
+  gateway: string
+}
 
-@description('SQL Server administrator login')
-param sqlAdministratorLogin string
-
-@description('SQL Server administrator password')
-@secure()
-param sqlAdministratorPassword string
-
-param containerRegistryServer string = 'ghcr.io'
+param location string
+param keyVaultName string
+param keyVaultIdentityName string
+param containerRegistryServer string
 param containerRegistryUsername string
-
-@description('Container registry password')
-@secure()
-param containerRegistryPassword string
-
-@secure()
-param openAiApiKey string
-
-@secure()
-param dbConnectionString string
-
-@secure()
-param authenticationSecretKey string
-
-param authenticationAudience string
-param authenticationIssuer string
-
-param smtpHost string
-param smtpPort int = 587
-param smtpUser string
-
-param llmProcessorApiUrl string
-
-@secure()
-param smtpPassword string
-
-param smtpFromEmail string
-
-param exchangeRateApiUrl string
-param exchangeRateApiEndpoint string
-
-@secure()
-param exchangeRateApiAppId string
-
 param rabbitMqUsername string
-param rabbitMqHost string
-param rabbitMqPort string
-
-@secure()
-param rabbitMqPassword string
-
-@secure()
-param redisConnectionString string
-
-@secure()
-param redisPassword string
-
-@secure()
-param llmProcessorApiToken string
-
-param mcpApiBaseUrl string
-
-@description('Revision suffix to force new deployment')
 param revisionSuffix string = utcNow('yyyyMMddHHmmss')
+param backendImageTag string
+param frontendImageTag string
+param llmProcessorImageTag string
+param gatewayImageTag string
+param gatewayCustomDomain string
+param certificateName string
+param createGatewayCertificate bool
+param resourcePrefix string
+param managedEnvironmentName string
+param sqlServerName string
+param sqlDatabaseName string
 
-param backendImageTag string = 'latest'
-param frontendImageTag string = 'latest'
-param llmProcessorImageTag string = 'latest'
-param gatewayImageTag string = 'latest'
+@allowed([
+  'Enabled'
+  'Disabled'
+])
+param sqlPublicNetworkAccess string
 
-@description('Custom domain for gateway (leave empty to use default)')
-param gatewayCustomDomain string = 'www.financeapp.fun'
+param allowAzureServicesToAccessSql bool
+param serviceNames ServiceNames
+param projectName string
+param managedBy string
+param costCenter string
 
-@description('Certificate name (resource name, can differ from domain)')
-param certificateName string = 'www.financeapp.fun'
-
-@description('Whether to create a new managed certificate (false to use existing)')
-param createGatewayCertificate bool = false
-
-@description('Environment name for resource tagging')
 @allowed([
   'development'
   'staging'
   'production'
 ])
-param environment string = 'production'
+param environment string
 
-// Variables
-var resourcePrefix = 'finance-app'
-var managedEnvironmentName = 'FinanceApp'
-var commonTags = {
+var tags = {
   Environment: environment
-  Project: 'FinanceApp'
-  ManagedBy: 'Bicep-Template'
-  CostCenter: 'Finance'
+  Project: projectName
+  ManagedBy: managedBy
+  CostCenter: costCenter
 }
-var logAnalyticsWorkspaceName = '${resourcePrefix}-logs'
-var sqlServerName = 'projects-server-sziszka90'
-var sqlDatabaseName = 'FinanceAppDB'
-var containerAppBackendName = 'finance-app-backend'
-var containerAppFrontendName = 'finance-app-frontend'
-var containerAppCacheName = 'finance-app-cache'
-var containerAppRabbitMQName = 'finance-app-rabbitmq'
-var containerAppLLMProcessorName = 'finance-app-llmprocessor'
-var containerAppGatewayName = 'finance-app-gateway'
+var keyVaultSecretsUserRoleDefinitionId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '4633458b-17de-408a-b874-0445c86b69e6'
+)
 
-// Resources
+resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
+  name: keyVaultName
+}
 
-// Log Analytics Workspace
-resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-  name: logAnalyticsWorkspaceName
+resource secretsIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: keyVaultIdentityName
   location: location
-  tags: commonTags
+  tags: tags
+}
+
+resource keyVaultSecretsRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, secretsIdentity.id, keyVaultSecretsUserRoleDefinitionId)
+  scope: keyVault
+  properties: {
+    roleDefinitionId: keyVaultSecretsUserRoleDefinitionId
+    principalId: secretsIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: '${resourcePrefix}-logs'
+  location: location
+  tags: tags
   properties: {
     sku: {
       name: 'PerGB2018'
@@ -135,11 +100,10 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09
   }
 }
 
-// Managed Environment
 resource managedEnvironment 'Microsoft.App/managedEnvironments@2023-05-01' = {
   name: managedEnvironmentName
   location: location
-  tags: commonTags
+  tags: tags
   properties: {
     appLogsConfiguration: {
       destination: 'log-analytics'
@@ -158,8 +122,193 @@ resource managedEnvironment 'Microsoft.App/managedEnvironments@2023-05-01' = {
   }
 }
 
-// Managed Certificate for Gateway (only if creating new)
-// Must be created AFTER gateway adds the hostname
+module sqlInfrastructure './modules/sql.bicep' = {
+  params: {
+    location: location
+    sqlServerName: sqlServerName
+    sqlDatabaseName: sqlDatabaseName
+    sqlPublicNetworkAccess: sqlPublicNetworkAccess
+    allowAzureServicesToAccessSql: allowAzureServicesToAccessSql
+    sqlAdministratorLogin: keyVault.getSecret('sql-admin-login')
+    sqlAdministratorPassword: keyVault.getSecret('sql-admin-password')
+  }
+}
+
+var secretUrls = {
+  authSecretKey: '${keyVault.properties.vaultUri}secrets/auth-secret-key'
+  cacheConnectionString: '${keyVault.properties.vaultUri}secrets/cache-connection-string'
+  exchangeRateApiAppId: '${keyVault.properties.vaultUri}secrets/exchange-rate-api-app-id'
+  financeAppDbConnectionString: '${keyVault.properties.vaultUri}secrets/finance-app-db-connection-string'
+  llmProcessorApiToken: '${keyVault.properties.vaultUri}secrets/llm-processor-api-token'
+  openAiApiKey: '${keyVault.properties.vaultUri}secrets/openai-api-key'
+  rabbitMqPassword: '${keyVault.properties.vaultUri}secrets/rabbitmq-password'
+  registryPassword: '${keyVault.properties.vaultUri}secrets/registry-password'
+  redisPassword: '${keyVault.properties.vaultUri}secrets/redis-password'
+  smtpPassword: '${keyVault.properties.vaultUri}secrets/smtp-password'
+}
+
+module cache './modules/cache.bicep' = {
+  dependsOn: [
+    keyVaultSecretsRoleAssignment
+  ]
+  params: {
+    location: location
+    name: serviceNames.cache
+    managedEnvironmentId: managedEnvironment.id
+    identityId: secretsIdentity.id
+    redisCredentialUri: secretUrls.redisPassword
+    revisionSuffix: revisionSuffix
+    tags: union(tags, {
+      Component: 'Cache'
+      Service: serviceNames.cache
+    })
+  }
+}
+
+module rabbitMq './modules/rabbitmq.bicep' = {
+  dependsOn: [
+    keyVaultSecretsRoleAssignment
+  ]
+  params: {
+    location: location
+    name: serviceNames.rabbitMq
+    managedEnvironmentId: managedEnvironment.id
+    identityId: secretsIdentity.id
+    rabbitMqCredentialUri: secretUrls.rabbitMqPassword
+    rabbitMqUsername: rabbitMqUsername
+    revisionSuffix: revisionSuffix
+    tags: union(tags, {
+      Component: 'Messaging'
+      Service: serviceNames.rabbitMq
+    })
+  }
+}
+
+module llmProcessor './modules/llm-processor.bicep' = {
+  dependsOn: [
+    keyVaultSecretsRoleAssignment
+  ]
+  params: {
+    location: location
+    name: serviceNames.llmProcessor
+    managedEnvironmentId: managedEnvironment.id
+    identityId: secretsIdentity.id
+    registryServer: containerRegistryServer
+    registryUsername: containerRegistryUsername
+    imageTag: llmProcessorImageTag
+    revisionSuffix: revisionSuffix
+    rabbitMqHost: rabbitMq.outputs.fqdn
+    tags: union(tags, {
+      Component: 'AI'
+      Service: serviceNames.llmProcessor
+    })
+    keyVaultUris: secretUrls
+  }
+}
+
+module backend './modules/backend.bicep' = {
+  dependsOn: [
+    sqlInfrastructure
+    keyVaultSecretsRoleAssignment
+  ]
+  params: {
+    location: location
+    name: serviceNames.backend
+    managedEnvironmentId: managedEnvironment.id
+    identityId: secretsIdentity.id
+    registryServer: containerRegistryServer
+    registryUsername: containerRegistryUsername
+    imageTag: backendImageTag
+    revisionSuffix: revisionSuffix
+    rabbitMqHost: rabbitMq.outputs.fqdn
+    llmProcessorUrl: 'https://${llmProcessor.outputs.fqdn}'
+    tags: union(tags, {
+      Component: 'Backend'
+      Service: serviceNames.backend
+    })
+    keyVaultUris: secretUrls
+  }
+}
+
+module frontend './modules/frontend.bicep' = {
+  dependsOn: [
+    keyVaultSecretsRoleAssignment
+  ]
+  params: {
+    location: location
+    name: serviceNames.frontend
+    managedEnvironmentId: managedEnvironment.id
+    identityId: secretsIdentity.id
+    registryServer: containerRegistryServer
+    registryUsername: containerRegistryUsername
+    imageTag: frontendImageTag
+    revisionSuffix: revisionSuffix
+    registryCredentialUri: secretUrls.registryPassword
+    tags: union(tags, {
+      Component: 'Frontend'
+      Service: serviceNames.frontend
+    })
+  }
+}
+
+resource existingGatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2023-05-01' existing = if (!empty(gatewayCustomDomain) && !createGatewayCertificate) {
+  parent: managedEnvironment
+  name: certificateName
+}
+
+var gatewayCustomDomains = !empty(gatewayCustomDomain)
+  ? (createGatewayCertificate
+      ? [
+          {
+            name: gatewayCustomDomain
+            bindingType: 'Disabled'
+          }
+        ]
+      : [
+          {
+            name: gatewayCustomDomain
+            bindingType: 'SniEnabled'
+            certificateId: existingGatewayCertificate.id
+          }
+        ])
+  : []
+
+module gateway './modules/gateway.bicep' = {
+  dependsOn: [
+    keyVaultSecretsRoleAssignment
+  ]
+  params: {
+    location: location
+    name: serviceNames.gateway
+    managedEnvironmentId: managedEnvironment.id
+    identityId: secretsIdentity.id
+    registryServer: containerRegistryServer
+    registryUsername: containerRegistryUsername
+    imageTag: gatewayImageTag
+    revisionSuffix: revisionSuffix
+    registryCredentialUri: secretUrls.registryPassword
+    customDomains: gatewayCustomDomains
+    routingEnvironment: [
+      {
+        name: 'LLM_PROCESSOR_URL'
+        value: 'https://${llmProcessor.outputs.fqdn}'
+      }
+      {
+        name: 'BACKEND_URL'
+        value: 'https://${backend.outputs.fqdn}'
+      }
+      {
+        name: 'FRONTEND_URL'
+        value: 'https://${frontend.outputs.fqdn}'
+      }
+    ]
+    tags: union(tags, {
+      Component: 'Gateway'
+      Service: serviceNames.gateway
+    })
+  }
+}
+
 resource gatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2023-05-01' = if (!empty(gatewayCustomDomain) && createGatewayCertificate) {
   parent: managedEnvironment
   name: certificateName
@@ -169,639 +318,16 @@ resource gatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificat
     domainControlValidation: 'CNAME'
   }
   dependsOn: [
-    containerAppGateway
+    gateway
   ]
 }
 
-// Reference existing certificate (if not creating new)
-resource existingGatewayCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2023-05-01' existing = if (!empty(gatewayCustomDomain) && !createGatewayCertificate) {
-  parent: managedEnvironment
-  name: certificateName
-}
-
-// SQL Server
-resource sqlServer 'Microsoft.Sql/servers@2023-08-01' = {
-  name: sqlServerName
-  location: location
-  tags: commonTags
-  properties: {
-    administratorLogin: sqlAdministratorLogin
-    administratorLoginPassword: sqlAdministratorPassword
-    version: '12.0'
-    minimalTlsVersion: '1.2'
-    publicNetworkAccess: 'Enabled'
-    restrictOutboundNetworkAccess: 'Disabled'
-  }
-}
-
-// SQL Database
-resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01' = {
-  parent: sqlServer
-  name: sqlDatabaseName
-  location: location
-  tags: commonTags
-  sku: {
-    name: 'GP_S_Gen5'
-    tier: 'GeneralPurpose'
-    family: 'Gen5'
-    capacity: 2
-  }
-  properties: {
-    collation: 'SQL_Latin1_General_CP1_CI_AS'
-    maxSizeBytes: 34359738368
-    catalogCollation: 'SQL_Latin1_General_CP1_CI_AS'
-    zoneRedundant: false
-    readScale: 'Disabled'
-    autoPauseDelay: 60
-    requestedBackupStorageRedundancy: 'Local'
-    minCapacity: json('0.5')
-    isLedgerOn: false
-    useFreeLimit: true
-    freeLimitExhaustionBehavior: 'BillOverUsage'
-  }
-}
-
-// SQL Firewall Rule - Allow Azure Services
-resource sqlFirewallRule 'Microsoft.Sql/servers/firewallRules@2023-08-01' = {
-  parent: sqlServer
-  name: 'AllowAzureServices'
-  properties: {
-    startIpAddress: '0.0.0.0'
-    endIpAddress: '0.0.0.0'
-  }
-}
-
-// Cache Container App (Redis)
-resource containerAppCache 'Microsoft.App/containerApps@2025-10-02-preview' = {
-  name: containerAppCacheName
-  location: location
-  tags: union(commonTags, {
-    Component: 'Cache'
-    Service: containerAppCacheName
-  })
-  properties: {
-    managedEnvironmentId: managedEnvironment.id
-    workloadProfileName: 'Consumption'
-    configuration: {
-      activeRevisionsMode: 'Single'
-      ingress: {
-        external: false
-        targetPort: 6379
-        transport: 'tcp'
-      }
-      secrets: [
-        {
-          name: 'redis-password'
-          value: redisPassword
-        }
-      ]
-    }
-    template: {
-      revisionSuffix: revisionSuffix
-      containers: [
-        {
-          name: 'redis'
-          image: 'docker.io/redis:latest'
-          command: [
-            'redis-server'
-            '--requirepass'
-            redisPassword
-          ]
-          resources: {
-            cpu: json('0.25')
-            memory: '0.5Gi'
-          }
-        }
-      ]
-      scale: {
-        minReplicas: 0
-        maxReplicas: 1
-      }
-    }
-  }
-}
-
-// RabbitMQ Container App
-resource containerAppRabbitMQ 'Microsoft.App/containerApps@2025-10-02-preview' = {
-  name: containerAppRabbitMQName
-  location: location
-  tags: union(commonTags, {
-    Component: 'Messaging'
-    Service: containerAppRabbitMQName
-  })
-  properties: {
-    managedEnvironmentId: managedEnvironment.id
-    workloadProfileName: 'Consumption'
-    configuration: {
-      activeRevisionsMode: 'Single'
-      ingress: {
-        external: false
-        targetPort: 5672
-        transport: 'tcp'
-      }
-      secrets: [
-        {
-          name: 'rabbitmq-password'
-          value: rabbitMqPassword
-        }
-      ]
-    }
-    template: {
-      revisionSuffix: revisionSuffix
-      containers: [
-        {
-          name: 'rabbitmq'
-          image: 'docker.io/rabbitmq:3-management'
-          env: [
-            {
-              name: 'RABBITMQ_DEFAULT_USER'
-              value: rabbitMqUsername
-            }
-            {
-              name: 'RABBITMQ_DEFAULT_PASS'
-              secretRef: 'rabbitmq-password'
-            }
-          ]
-          resources: {
-            cpu: json('0.5')
-            memory: '1Gi'
-          }
-        }
-      ]
-      scale: {
-        minReplicas: 0
-        maxReplicas: 1
-      }
-    }
-  }
-}
-
-// LLM Processor Container App
-resource containerAppLLMProcessor 'Microsoft.App/containerApps@2025-10-02-preview' = {
-  name: containerAppLLMProcessorName
-  location: location
-  tags: union(commonTags, {
-    Component: 'AI'
-    Service: containerAppLLMProcessorName
-  })
-  properties: {
-    managedEnvironmentId: managedEnvironment.id
-    workloadProfileName: 'Consumption'
-    configuration: {
-      activeRevisionsMode: 'Single'
-      ingress: {
-        external: false
-        targetPort: 8000
-        transport: 'http'
-      }
-      registries: [
-        {
-          server: containerRegistryServer
-          username: containerRegistryUsername
-          passwordSecretRef: 'registry-password'
-        }
-      ]
-      secrets: [
-        {
-          name: 'registry-password'
-          value: containerRegistryPassword
-        }
-        {
-          name: 'llm-processor-api-token'
-          value: llmProcessorApiToken
-        }
-        {
-          name: 'openai-api-key'
-          value: openAiApiKey
-        }
-        {
-          name: 'rabbitmq-password'
-          value: rabbitMqPassword
-        }
-        {
-          name: 'db-connection-string'
-          value: dbConnectionString
-        }
-      ]
-    }
-    template: {
-      revisionSuffix: revisionSuffix
-      containers: [
-        {
-          name: 'llmprocessor'
-          image: '${containerRegistryServer}/sziszka90/${containerAppLLMProcessorName}:${llmProcessorImageTag}'
-          env: [
-            {
-              name: 'API_TOKEN'
-              secretRef: 'llm-processor-api-token'
-            }
-            {
-              name: 'OPENAI_API_KEY'
-              secretRef: 'openai-api-key'
-            }
-            {
-              name: 'CONNECTION_STRING'
-              secretRef: 'db-connection-string'
-            }
-            {
-              name: 'RABBITMQ_HOST'
-              value: rabbitMqHost
-            }
-            {
-              name: 'RABBITMQ_PORT'
-              value: rabbitMqPort
-            }
-            {
-              name: 'RABBITMQ_USER'
-              value: rabbitMqUsername
-            }
-            {
-              name: 'RABBITMQ_PASS'
-              secretRef: 'rabbitmq-password'
-            }
-            {
-              name: 'RABBITMQ_VHOST'
-              value: '/'
-            }
-            {
-              name: 'MCP_API_BASE_URL'
-              value: mcpApiBaseUrl
-            }
-          ]
-          resources: {
-            cpu: json('0.5')
-            memory: '1Gi'
-          }
-        }
-      ]
-      scale: {
-        minReplicas: 0
-        maxReplicas: 10
-        cooldownPeriod: 300
-        pollingInterval: 30
-        rules: [
-          {
-            name: 'http-scaler'
-            custom: {
-              type: 'http'
-              metadata: {
-                concurrentRequests: '10'
-              }
-            }
-          }
-        ]
-      }
-    }
-  }
-}
-
-// Backend Container App
-resource containerAppBackend 'Microsoft.App/containerApps@2025-10-02-preview' = {
-  name: containerAppBackendName
-  location: location
-  tags: union(commonTags, {
-    Component: 'Backend'
-    Service: containerAppBackendName
-  })
-  properties: {
-    managedEnvironmentId: managedEnvironment.id
-    workloadProfileName: 'Consumption'
-    configuration: {
-      activeRevisionsMode: 'Single'
-      ingress: {
-        external: false
-        targetPort: 8080
-        transport: 'http'
-      }
-      registries: [
-        {
-          server: containerRegistryServer
-          username: containerRegistryUsername
-          passwordSecretRef: 'registry-password'
-        }
-      ]
-      secrets: [
-        {
-          name: 'registry-password'
-          value: containerRegistryPassword
-        }
-        {
-          name: 'openai-api-key'
-          value: openAiApiKey
-        }
-        {
-          name: 'auth-secret-key'
-          value: authenticationSecretKey
-        }
-        {
-          name: 'smtp-password'
-          value: smtpPassword
-        }
-        {
-          name: 'exchange-rate-api-app-id'
-          value: exchangeRateApiAppId
-        }
-        {
-          name: 'rabbitmq-password'
-          value: rabbitMqPassword
-        }
-        {
-          name: 'llm-processor-api-token'
-          value: llmProcessorApiToken
-        }
-        {
-          name: 'redis-password-backend'
-          value: redisPassword
-        }
-        {
-          name: 'cache-connection-string'
-          value: redisConnectionString
-        }
-        {
-          name: 'sql-connection-string'
-          value: dbConnectionString
-        }
-      ]
-    }
-    template: {
-      revisionSuffix: revisionSuffix
-      containers: [
-        {
-          name: 'backend'
-          image: '${containerRegistryServer}/sziszka90/${containerAppBackendName}:${backendImageTag}'
-          env: [
-            {
-              name: 'ConnectionStrings__MsSql'
-              secretRef: 'sql-connection-string'
-            }
-            {
-              name: 'CacheSettings__ConnectionString'
-              secretRef: 'cache-connection-string'
-            }
-            {
-              name: 'LLMClientSettings__ApiKey'
-              secretRef: 'openai-api-key'
-            }
-            {
-              name: 'AuthenticationSettings__SecretKey'
-              secretRef: 'auth-secret-key'
-            }
-            {
-              name: 'AuthenticationSettings__Audience'
-              value: authenticationAudience
-            }
-            {
-              name: 'AuthenticationSettings__Issuer'
-              value: authenticationIssuer
-            }
-            {
-              name: 'SmtpSettings__SmtpHost'
-              value: smtpHost
-            }
-            {
-              name: 'SmtpSettings__SmtpPort'
-              value: string(smtpPort)
-            }
-            {
-              name: 'SmtpSettings__SmtpUser'
-              value: smtpUser
-            }
-            {
-              name: 'SmtpSettings__SmtpPass'
-              secretRef: 'smtp-password'
-            }
-            {
-              name: 'SmtpSettings__FromEmail'
-              value: smtpFromEmail
-            }
-            {
-              name: 'ExchangeRateSettings__ApiUrl'
-              value: exchangeRateApiUrl
-            }
-            {
-              name: 'ExchangeRateSettings__ApiEndpoint'
-              value: exchangeRateApiEndpoint
-            }
-            {
-              name: 'ExchangeRateSettings__AppId'
-              secretRef: 'exchange-rate-api-app-id'
-            }
-            {
-              name: 'RabbitMqSettings__HostName'
-              value: rabbitMqHost
-            }
-            {
-              name: 'RabbitMqSettings__Port'
-              value: rabbitMqPort
-            }
-            {
-              name: 'RabbitMqSettings__UserName'
-              value: rabbitMqUsername
-            }
-            {
-              name: 'RabbitMqSettings__Password'
-              secretRef: 'rabbitmq-password'
-            }
-            {
-              name: 'LLMProcessorSettings__Token'
-              secretRef: 'llm-processor-api-token'
-            }
-            {
-              name: 'LLMProcessorSettings__ApiUrl'
-              value: llmProcessorApiUrl
-            }
-          ]
-          resources: {
-            cpu: json('0.5')
-            memory: '1Gi'
-          }
-        }
-      ]
-      scale: {
-        minReplicas: 0
-        maxReplicas: 10
-        cooldownPeriod: 300
-        pollingInterval: 30
-        rules: [
-          {
-            name: 'http-scaler'
-            custom: {
-              type: 'http'
-              metadata: {
-                concurrentRequests: '10'
-              }
-            }
-          }
-        ]
-      }
-    }
-  }
-  dependsOn: [
-    sqlDatabase
-    containerAppCache
-    containerAppRabbitMQ
-    containerAppLLMProcessor
-  ]
-}
-
-// Frontend Container App
-resource containerAppFrontend 'Microsoft.App/containerApps@2025-10-02-preview' = {
-  name: containerAppFrontendName
-  location: location
-  tags: union(commonTags, {
-    Component: 'Frontend'
-    Service: containerAppFrontendName
-  })
-  properties: {
-    managedEnvironmentId: managedEnvironment.id
-    workloadProfileName: 'Consumption'
-    configuration: {
-      activeRevisionsMode: 'Single'
-      ingress: {
-        external: true
-        targetPort: 80
-        transport: 'http'
-        allowInsecure: false
-      }
-      registries: [
-        {
-          server: containerRegistryServer
-          username: containerRegistryUsername
-          passwordSecretRef: 'registry-password'
-        }
-      ]
-      secrets: [
-        {
-          name: 'registry-password'
-          value: containerRegistryPassword
-        }
-      ]
-    }
-    template: {
-      revisionSuffix: revisionSuffix
-      containers: [
-        {
-          name: 'frontend'
-          image: '${containerRegistryServer}/sziszka90/${containerAppFrontendName}:${frontendImageTag}'
-          resources: {
-            cpu: json('0.5')
-            memory: '1Gi'
-          }
-        }
-      ]
-      scale: {
-        minReplicas: 0
-        maxReplicas: 10
-        cooldownPeriod: 300
-        pollingInterval: 30
-        rules: [
-          {
-            name: 'http-scaler'
-            http: {
-              metadata: {
-                concurrentRequests: '10'
-              }
-            }
-          }
-        ]
-      }
-    }
-  }
-}
-
-// Gateway Container App
-resource containerAppGateway 'Microsoft.App/containerApps@2025-10-02-preview' = {
-  name: containerAppGatewayName
-  location: location
-  tags: union(commonTags, {
-    Component: 'Gateway'
-    Service: containerAppGatewayName
-  })
-  properties: {
-    managedEnvironmentId: managedEnvironment.id
-    workloadProfileName: 'Consumption'
-    configuration: {
-      activeRevisionsMode: 'Single'
-      ingress: {
-        external: true
-        targetPort: 80
-        transport: 'http'
-        allowInsecure: false
-        customDomains: (!empty(gatewayCustomDomain) && createGatewayCertificate)
-          ? [
-              {
-                name: gatewayCustomDomain
-                // Add hostname without SSL to enable cert creation
-                bindingType: 'Disabled'
-              }
-            ]
-          : (!empty(gatewayCustomDomain) && !createGatewayCertificate)
-              ? [
-                  {
-                    name: gatewayCustomDomain
-                    // Bind existing cert with SSL
-                    bindingType: 'SniEnabled'
-                    certificateId: existingGatewayCertificate.id
-                  }
-                ]
-              : []
-      }
-      registries: [
-        {
-          server: containerRegistryServer
-          username: containerRegistryUsername
-          passwordSecretRef: 'registry-password'
-        }
-      ]
-      secrets: [
-        {
-          name: 'registry-password'
-          value: containerRegistryPassword
-        }
-      ]
-    }
-    template: {
-      revisionSuffix: revisionSuffix
-      containers: [
-        {
-          name: 'gateway'
-          image: '${containerRegistryServer}/sziszka90/${containerAppGatewayName}:${gatewayImageTag}'
-          resources: {
-            cpu: json('0.5')
-            memory: '1Gi'
-          }
-        }
-      ]
-      scale: {
-        minReplicas: 0
-        maxReplicas: 10
-        cooldownPeriod: 300
-        pollingInterval: 30
-        rules: [
-          {
-            name: 'http-scaler'
-            http: {
-              metadata: {
-                concurrentRequests: '10'
-              }
-            }
-          }
-        ]
-      }
-    }
-  }
-  dependsOn: [
-    containerAppFrontend
-  ]
-}
-
-// Outputs
 output managedEnvironmentId string = managedEnvironment.id
-output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
+output sqlServerFqdn string = sqlInfrastructure.outputs.sqlServerFqdn
 output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.id
-output backendUrl string = containerAppBackend.properties.configuration.ingress.fqdn
-output frontendUrl string = containerAppFrontend.properties.configuration.ingress.fqdn
-output gatewayUrl string = containerAppGateway.properties.configuration.ingress.fqdn
-output llmProcessorUrl string = containerAppLLMProcessor.properties.configuration.ingress.fqdn
-output cacheUrl string = containerAppCache.properties.configuration.ingress.fqdn
-output rabbitMqUrl string = containerAppRabbitMQ.properties.configuration.ingress.fqdn
+output backendUrl string = backend.outputs.fqdn
+output frontendUrl string = frontend.outputs.fqdn
+output gatewayUrl string = gateway.outputs.fqdn
+output llmProcessorUrl string = llmProcessor.outputs.fqdn
+output cacheUrl string = cache.outputs.fqdn
+output rabbitMqUrl string = rabbitMq.outputs.fqdn

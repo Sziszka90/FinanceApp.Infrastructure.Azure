@@ -49,29 +49,55 @@ This infrastructure repo is designed to work with separate service repositories:
 
 Each service repo builds and tags images independently. This infrastructure deployment workflow accepts image tags as inputs to deploy specific versions.
 
-## 🔐 GitHub Secrets Required
+## 🔐 GitHub Actions Configuration
 
 Configure these secrets in your GitHub repository before deployment:
 
-| Secret Name                | Description                              |
-| -------------------------- | ---------------------------------------- |
-| `AZURE_CLIENT_ID`          | Azure Service Principal client ID (OIDC) |
-| `AZURE_TENANT_ID`          | Azure tenant ID (OIDC)                   |
-| `AZURE_SUBSCRIPTION_ID`    | Azure subscription ID (OIDC)             |
-| `SQL_ADMIN_LOGIN`          | SQL Server administrator username        |
-| `SQL_ADMIN_PASSWORD`       | SQL Server administrator password        |
-| `GHCR_USERNAME`            | GitHub Container Registry username       |
-| `GHCR_TOKEN`               | GitHub Personal Access Token             |
-| `OPENAI_API_KEY`           | OpenAI API key                           |
-| `AUTH_SECRET_KEY`          | JWT authentication secret                |
-| `SMTP_USER`                | SMTP username                            |
-| `SMTP_PASSWORD`            | SMTP password                            |
-| `SMTP_FROM_EMAIL`          | Email sender address                     |
-| `EXCHANGE_RATE_API_APP_ID` | Exchange rate API app ID                 |
-| `RABBITMQ_USERNAME`        | RabbitMQ username                        |
-| `RABBITMQ_PASSWORD`        | RabbitMQ password                        |
-| `REDIS_PASSWORD`           | Redis password                           |
-| `LLM_PROCESSOR_API_TOKEN`  | LLM Processor API token                  |
+| Secret Name             | Description                              |
+| ----------------------- | ---------------------------------------- |
+| `AZURE_CLIENT_ID`       | Azure Service Principal client ID (OIDC) |
+| `AZURE_TENANT_ID`       | Azure tenant ID (OIDC)                   |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID (OIDC)             |
+
+GitHub Actions only supplies Azure OIDC credentials and the image-tag workflow inputs. It does not supply infrastructure configuration, application settings, registry credentials, or secret values.
+
+## Production Configuration
+
+Set the non-secret infrastructure and deployment values in the checked-in parameter files:
+
+- `main.production.bicepparam`
+- `cert-binding.production.bicepparam`
+
+These files contain the production values for the Azure region, Key Vault, managed identity, registry, service names, SQL names, SQL network access, image defaults, gateway domain, certificate name, environment, and resource tags. GitHub Actions reads the Container Apps environment and gateway domain from `main.production.bicepparam`; it can override only image tags, the revision suffix, and certificate creation state for a particular deployment.
+
+The current production registry username is `sziszka90`; update it in both parameter files if the registry account changes. The registry password remains in Key Vault as `registry-password`.
+
+The configured Key Vault is `finance-app-key-vault` (`https://finance-app-key-vault.vault.azure.net/`). Bicep derives the vault URI from the existing Key Vault resource, so the URL is not passed as a separate parameter.
+
+Service repositories own fixed non-secret application settings such as authentication issuer/audience, SMTP configuration, exchange-rate API URLs, RabbitMQ user and vhost, and MCP configuration. Those applications load the values from their packaged configuration; this infrastructure workflow does not pass them as environment variables.
+
+The following versionless Key Vault secrets are read by Container Apps through the shared `finance-app-secrets` managed identity:
+
+- `auth-secret-key`
+- `cache-connection-string`
+- `exchange-rate-api-app-id`
+- `finance-app-db-connection-string`
+- `llm-processor-api-token`
+- `openai-api-key`
+- `rabbitmq-password`
+- `registry-password`
+- `redis-password`
+- `sql-admin-password`
+- `sql-admin-login`
+- `smtp-password`
+
+Gateway routing values are not secrets and are not GitHub Actions inputs. The gateway receives `LLM_PROCESSOR_URL`, `BACKEND_URL`, and `FRONTEND_URL` from the `gatewayRoutingEnvironment` variable in the Bicep templates. Those values are derived from the deployed Container App FQDNs, so they stay correct across deployments without maintaining a separate `.env` file.
+
+The deployment identity must be allowed to create role assignments on the Key Vault and read secrets during Bicep deployment. The Key Vault must also allow template deployments. The template grants the Container Apps identity the **Key Vault Secrets User** role. The SQL module reads `sql-admin-login` and `sql-admin-password` during deployment, while the Redis container reads `redis-password` at runtime.
+
+### SQL Network Access
+
+`main.production.bicepparam` explicitly controls `sqlPublicNetworkAccess` and `allowAzureServicesToAccessSql`. The current deployment keeps public access enabled because the Container Apps environment is not VNet-integrated. Set both values to disable public access only after adding Container Apps VNet integration, a SQL private endpoint, and private DNS routing.
 
 ## 🚀 Deployment
 
