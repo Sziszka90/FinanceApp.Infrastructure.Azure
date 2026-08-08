@@ -198,6 +198,8 @@ module llmProcessor './modules/llm-processor.bicep' = {
     imageTag: llmProcessorImageTag
     revisionSuffix: revisionSuffix
     rabbitMqHost: rabbitMq.outputs.fqdn
+    keyVaultUri: keyVault.properties.vaultUri
+    identityClientId: secretsIdentity.properties.clientId
     tags: union(tags, {
       Component: 'AI'
       Service: serviceNames.llmProcessor

@@ -7,6 +7,8 @@ param registryUsername string
 param imageTag string
 param revisionSuffix string
 param rabbitMqHost string
+param keyVaultUri string
+param identityClientId string
 param tags object
 param keyVaultUris object
 
@@ -72,6 +74,14 @@ resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
           name: 'llmprocessor'
           image: '${registryServer}/${registryUsername}/${name}:${imageTag}'
           env: [
+            {
+              name: 'KEY_VAULT_URI'
+              value: keyVaultUri
+            }
+            {
+              name: 'AZURE_CLIENT_ID'
+              value: identityClientId
+            }
             {
               name: 'API_TOKEN'
               secretRef: 'llm-processor-api-token'

@@ -95,6 +95,8 @@ Gateway routing values are not secrets and are not GitHub Actions inputs. The ga
 
 The GitHub Actions OIDC identity must be allowed to create role assignments on the Key Vault and must have the `Microsoft.KeyVault/vaults/deploy/action` permission on the Key Vault or resource group. **Contributor** or **Owner** includes this deployment action; a least-privilege custom role containing only this action is also suitable. The workflow enables Key Vault template deployment access and sets the required `AzureServices` network ACL bypass before running the Bicep deployment. The template separately grants the Container Apps identity the **Key Vault Secrets User** role for runtime secret reads. The SQL module reads `sql-admin-login` and `sql-admin-password` during deployment, while the Redis container reads `redis-password` at runtime.
 
+The LLM Processor loads secrets directly with Azure Identity and Key Vault SDKs. Its Container App receives `KEY_VAULT_URI` and `AZURE_CLIENT_ID` from Bicep. `AZURE_CLIENT_ID` selects the `finance-app-secrets` user-assigned identity, while `KEY_VAULT_URI` points to `finance-app-key-vault`.
+
 ### SQL Network Access
 
 `main.production.bicepparam` explicitly controls `sqlPublicNetworkAccess` and `allowAzureServicesToAccessSql`. The current deployment keeps public access enabled because the Container Apps environment is not VNet-integrated. Set both values to disable public access only after adding Container Apps VNet integration, a SQL private endpoint, and private DNS routing.
