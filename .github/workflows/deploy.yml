@@ -67,6 +67,7 @@ jobs:
             --name "${{ steps.deployment-config.outputs.keyVaultName }}" \
             --resource-group "$AZURE_RESOURCE_GROUP" \
             --enabled-for-template-deployment true \
+            --bypass AzureServices \
             --output none
 
       - name: Check Certificate Existence
