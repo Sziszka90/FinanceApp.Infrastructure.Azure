@@ -89,35 +89,29 @@ jobs:
           fi
 
       - name: Deploy Template
-        uses: azure/arm-deploy@v2
-        with:
-          scope: resourcegroup
-          resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP }}
-          template: ./main.bicep
-          deploymentMode: Incremental
-          deploymentName: deploy-${{ github.run_number }}
-          parameters: >
-            ./main.production.bicepparam
-            backendImageTag=${{ github.event.inputs.backendImageTag || 'latest' }}
-            frontendImageTag=${{ github.event.inputs.frontendImageTag || 'latest' }}
-            llmProcessorImageTag=${{ github.event.inputs.llmProcessorImageTag || 'latest' }}
-            gatewayImageTag=${{ github.event.inputs.gatewayImageTag || 'latest' }}
-            createGatewayCertificate=${{ steps.check-cert.outputs.createCert }}
-            revisionSuffix=${{ github.run_number }}
-            environment=production
+        run: |
+          az deployment group create \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "deploy-${{ github.run_number }}" \
+            --template-file ./main.bicep \
+            --mode Incremental \
+            --parameters \
+              ./main.production.bicepparam \
+              "backendImageTag=${{ github.event.inputs.backendImageTag || 'latest' }}" \
+              "frontendImageTag=${{ github.event.inputs.frontendImageTag || 'latest' }}" \
+              "llmProcessorImageTag=${{ github.event.inputs.llmProcessorImageTag || 'latest' }}" \
+              "gatewayImageTag=${{ github.event.inputs.gatewayImageTag || 'latest' }}" \
+              "createGatewayCertificate=${{ steps.check-cert.outputs.createCert }}" \
+              "revisionSuffix=${{ github.run_number }}" \
+              "environment=production" \
+            --query properties.outputs \
+            --output json > deployment-outputs.json
 
       - name: Display Deployment Outputs
         id: get-outputs
         run: |
           echo "✅ Deployment completed successfully!"
           echo "Deployment name: deploy-${{ github.run_number }}"
-
-          # Get deployment outputs
-          az deployment group show \
-            --resource-group "$AZURE_RESOURCE_GROUP" \
-            --name deploy-${{ github.run_number }} \
-            --query properties.outputs \
-            --output json > deployment-outputs.json
 
           echo "📊 Deployment Outputs:"
           cat deployment-outputs.json | jq '.'
@@ -174,16 +168,16 @@ jobs:
           exit 1
 
       - name: Deploy Stage - Bind SSL Certificate
-        uses: azure/arm-deploy@v2
-        with:
-          scope: resourcegroup
-          resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP }}
-          template: ./cert-binding.bicep
-          deploymentMode: Incremental
-          deploymentName: cert-binding-${{ github.run_number }}
-          parameters: >
-            ./cert-binding.production.bicepparam
-            gatewayImageTag=${{ github.event.inputs.gatewayImageTag || 'latest' }}
+        run: |
+          az deployment group create \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "cert-binding-${{ github.run_number }}" \
+            --template-file ./cert-binding.bicep \
+            --mode Incremental \
+            --parameters \
+              ./cert-binding.production.bicepparam \
+              "gatewayImageTag=${{ github.event.inputs.gatewayImageTag || 'latest' }}" \
+            --output none
 
       - name: Display Cert Binding Stage Outputs
         run: |

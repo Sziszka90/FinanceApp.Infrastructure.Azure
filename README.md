@@ -117,7 +117,7 @@ The GitHub Actions OIDC identity must be allowed to create role assignments on t
 1. **Push to main** or **Manual trigger** → Triggers GitHub Actions workflow
 2. **Authenticate** → Uses OIDC authentication with Azure
 3. **Check Certificate** → Verifies if SSL certificate exists
-4. **Deploy Bicep Template** → Provisions all Azure resources
+4. **Deploy Bicep Template** → Uses `az deployment group create` with the checked-in `.bicepparam` file
 5. **Bind Certificate** → Creates the SSL binding after the certificate exists, whether it was newly created or already present
 6. **Output URLs** → Returns service endpoints for verification
 
