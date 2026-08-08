@@ -197,7 +197,7 @@ module llmProcessor './modules/llm-processor.bicep' = {
     registryUsername: containerRegistryUsername
     imageTag: llmProcessorImageTag
     revisionSuffix: revisionSuffix
-    rabbitMqHost: rabbitMq.outputs.fqdn
+    rabbitMqHost: serviceNames.rabbitMq
     keyVaultUri: keyVault.properties.vaultUri
     identityClientId: secretsIdentity.properties.clientId
     tags: union(tags, {
