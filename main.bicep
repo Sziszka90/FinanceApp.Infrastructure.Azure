@@ -224,6 +224,7 @@ module backend './modules/backend.bicep' = {
     revisionSuffix: revisionSuffix
     rabbitMqHost: serviceNames.rabbitMq
     llmProcessorUrl: 'https://${llmProcessor.outputs.fqdn}'
+    identityClientId: secretsIdentity.properties.clientId
     tags: union(tags, {
       Component: 'Backend'
       Service: serviceNames.backend

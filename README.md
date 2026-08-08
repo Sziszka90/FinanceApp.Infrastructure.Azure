@@ -31,14 +31,14 @@ When you deploy this template, Azure will create the following resources:
 
 Scaling rules match the protocol used by each service:
 
-| Service | Ingress | Wake-up rule |
-| --- | --- | --- |
-| Redis | Internal TCP `6379` | TCP concurrent connections |
-| RabbitMQ | Internal TCP `5672` | TCP concurrent connections |
-| Backend | Internal HTTP `8080` | HTTP concurrent requests |
-| LLM Processor | Internal HTTP `8000` | HTTP concurrent requests |
-| Frontend | External HTTP `80` | HTTP concurrent requests |
-| Gateway | External HTTP `80` | HTTP concurrent requests |
+| Service       | Ingress              | Wake-up rule               |
+| ------------- | -------------------- | -------------------------- |
+| Redis         | Internal TCP `6379`  | TCP concurrent connections |
+| RabbitMQ      | Internal TCP `5672`  | TCP concurrent connections |
+| Backend       | Internal HTTP `8080` | HTTP concurrent requests   |
+| LLM Processor | Internal HTTP `8000` | HTTP concurrent requests   |
+| Frontend      | External HTTP `80`   | HTTP concurrent requests   |
+| Gateway       | External HTTP `80`   | HTTP concurrent requests   |
 
 TCP services use TCP scale rules so a connection can activate a zero-scaled revision. HTTP services use native HTTP scale rules. Applying TCP rules to every service would be incorrect because the application protocol and ingress transport must match.
 
@@ -110,7 +110,7 @@ Gateway routing values are not secrets and are not GitHub Actions inputs. The ga
 
 The GitHub Actions OIDC identity must be allowed to create role assignments on the Key Vault and must have the `Microsoft.KeyVault/vaults/deploy/action` permission on the Key Vault or resource group. **Contributor** or **Owner** includes this deployment action; a least-privilege custom role containing only this action is also suitable. The workflow enables Key Vault template deployment access and sets the required `AzureServices` network ACL bypass before running the Bicep deployment. The template separately grants the Container Apps identity the **Key Vault Secrets User** role for runtime secret reads. The SQL module reads `sql-admin-login` and `sql-admin-password` during deployment, while the Redis container reads `redis-password` at runtime.
 
-The LLM Processor loads secrets directly with Azure Identity and Key Vault SDKs. Its Container App receives `KEY_VAULT_URI` and `AZURE_CLIENT_ID` from Bicep. `AZURE_CLIENT_ID` selects the `finance-app-secrets` user-assigned identity, while `KEY_VAULT_URI` points to `finance-app-key-vault`.
+The LLM Processor and Backend load secrets directly with Azure Identity and Key Vault SDKs. Their Container Apps receive `AZURE_CLIENT_ID` from Bicep, which selects the `finance-app-secrets` user-assigned identity. The LLM Processor also receives `KEY_VAULT_URI`; the Backend obtains its vault URI from its application configuration. This explicit client ID is required when using a user-assigned identity with `DefaultAzureCredential`.
 
 ### SQL Network Access
 

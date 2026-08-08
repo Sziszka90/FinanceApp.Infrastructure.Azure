@@ -8,6 +8,7 @@ param imageTag string
 param revisionSuffix string
 param rabbitMqHost string
 param llmProcessorUrl string
+param identityClientId string
 param tags object
 param keyVaultUris object
 
@@ -93,6 +94,10 @@ resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
           name: 'backend'
           image: '${registryServer}/${registryUsername}/${name}:${imageTag}'
           env: [
+            {
+              name: 'AZURE_CLIENT_ID'
+              value: identityClientId
+            }
             {
               name: 'ConnectionStrings__MsSql'
               secretRef: 'finance-app-db-connection-string'
