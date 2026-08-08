@@ -121,8 +121,7 @@ resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
         rules: [
           {
             name: 'http-scaler'
-            custom: {
-              type: 'http'
+            http: {
               metadata: {
                 concurrentRequests: '10'
               }

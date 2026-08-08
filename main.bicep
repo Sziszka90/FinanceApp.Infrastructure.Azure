@@ -222,7 +222,7 @@ module backend './modules/backend.bicep' = {
     registryUsername: containerRegistryUsername
     imageTag: backendImageTag
     revisionSuffix: revisionSuffix
-    rabbitMqHost: rabbitMq.outputs.fqdn
+    rabbitMqHost: serviceNames.rabbitMq
     llmProcessorUrl: 'https://${llmProcessor.outputs.fqdn}'
     tags: union(tags, {
       Component: 'Backend'

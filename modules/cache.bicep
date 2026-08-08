@@ -62,6 +62,16 @@ resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
       scale: {
         minReplicas: 0
         maxReplicas: 1
+        rules: [
+          {
+            name: 'tcp-scaler'
+            tcp: {
+              metadata: {
+                concurrentConnections: '1'
+              }
+            }
+          }
+        ]
       }
     }
   }

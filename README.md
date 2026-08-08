@@ -27,6 +27,21 @@ When you deploy this template, Azure will create the following resources:
 
 6. **Redis (Cache)** - In-memory cache
 
+### Service Wake-Up Rules
+
+Scaling rules match the protocol used by each service:
+
+| Service | Ingress | Wake-up rule |
+| --- | --- | --- |
+| Redis | Internal TCP `6379` | TCP concurrent connections |
+| RabbitMQ | Internal TCP `5672` | TCP concurrent connections |
+| Backend | Internal HTTP `8080` | HTTP concurrent requests |
+| LLM Processor | Internal HTTP `8000` | HTTP concurrent requests |
+| Frontend | External HTTP `80` | HTTP concurrent requests |
+| Gateway | External HTTP `80` | HTTP concurrent requests |
+
+TCP services use TCP scale rules so a connection can activate a zero-scaled revision. HTTP services use native HTTP scale rules. Applying TCP rules to every service would be incorrect because the application protocol and ingress transport must match.
+
 ### **Database**
 
 - **1 Azure SQL Server** - Auto-named with unique suffix
