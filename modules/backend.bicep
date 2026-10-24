@@ -61,11 +61,6 @@ resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
           identity: identityId
         }
         {
-          name: 'exchange-rate-api-app-id'
-          keyVaultUrl: keyVaultUris.exchangeRateApiAppId
-          identity: identityId
-        }
-        {
           name: 'rabbitmq-password'
           keyVaultUrl: keyVaultUris.rabbitMqPassword
           identity: identityId
@@ -117,10 +112,6 @@ resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
             {
               name: 'SmtpSettings__SmtpPass'
               secretRef: 'smtp-password'
-            }
-            {
-              name: 'ExchangeRateSettings__AppId'
-              secretRef: 'exchange-rate-api-app-id'
             }
             {
               name: 'RabbitMqSettings__HostName'

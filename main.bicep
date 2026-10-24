@@ -137,7 +137,6 @@ module sqlInfrastructure './modules/sql.bicep' = {
 var secretUrls = {
   authSecretKey: '${keyVault.properties.vaultUri}secrets/auth-secret-key'
   cacheConnectionString: '${keyVault.properties.vaultUri}secrets/cache-connection-string'
-  exchangeRateApiAppId: '${keyVault.properties.vaultUri}secrets/exchange-rate-api-app-id'
   financeAppDbConnectionString: '${keyVault.properties.vaultUri}secrets/finance-app-db-connection-string'
   llmProcessorApiToken: '${keyVault.properties.vaultUri}secrets/llm-processor-api-token'
   openAiApiKey: '${keyVault.properties.vaultUri}secrets/openai-api-key'

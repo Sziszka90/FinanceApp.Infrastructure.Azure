@@ -95,7 +95,6 @@ The following versionless Key Vault secrets are read by Container Apps through t
 
 - `auth-secret-key`
 - `cache-connection-string`
-- `exchange-rate-api-app-id`
 - `finance-app-db-connection-string`
 - `llm-processor-api-token`
 - `openai-api-key`
