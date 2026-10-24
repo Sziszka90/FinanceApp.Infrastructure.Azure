@@ -9,19 +9,15 @@ on:
       backendImageTag:
         description: "Backend image tag"
         required: false
-        default: "latest"
       frontendImageTag:
         description: "Frontend image tag"
         required: false
-        default: "latest"
       llmProcessorImageTag:
         description: "LLM Processor image tag"
         required: false
-        default: "latest"
       gatewayImageTag:
         description: "Gateway image tag"
         required: false
-        default: "latest"
 
 permissions:
   id-token: write
@@ -37,6 +33,7 @@ jobs:
       createCert: ${{ steps.check-cert.outputs.createCert }}
       managedEnvironmentName: ${{ steps.deployment-config.outputs.managedEnvironmentName }}
       gatewayDomain: ${{ steps.deployment-config.outputs.gatewayDomain }}
+      gatewayImageTag: ${{ steps.resolve-image-tags.outputs.gatewayImageTag }}
 
     steps:
       - name: Checkout code
@@ -89,20 +86,46 @@ jobs:
           fi
 
       - name: Deploy Template
+        id: resolve-image-tags
         env:
-          LLM_PROCESSOR_IMAGE_TAG: ${{ github.event.inputs.llmProcessorImageTag }}
+          INPUT_BACKEND_IMAGE_TAG: ${{ github.event.inputs.backendImageTag }}
+          INPUT_FRONTEND_IMAGE_TAG: ${{ github.event.inputs.frontendImageTag }}
+          INPUT_LLM_PROCESSOR_IMAGE_TAG: ${{ github.event.inputs.llmProcessorImageTag }}
+          INPUT_GATEWAY_IMAGE_TAG: ${{ github.event.inputs.gatewayImageTag }}
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            CURRENT_LLM_IMAGE="$(az containerapp show \
-              --name finance-app-llmprocessor \
+          resolve_image_tag() {
+            local requested_tag="$1"
+            local app_name="$2"
+            if [ -n "$requested_tag" ]; then
+              printf '%s' "$requested_tag"
+              return
+            fi
+
+            local current_image
+            current_image="$(az containerapp show \
+              --name "$app_name" \
               --resource-group "$AZURE_RESOURCE_GROUP" \
               --query 'properties.template.containers[0].image' \
               --output tsv 2>/dev/null || true)"
-            if [ -n "$CURRENT_LLM_IMAGE" ]; then
-              LLM_PROCESSOR_IMAGE_TAG="${CURRENT_LLM_IMAGE##*:}"
+            if [ -n "$current_image" ] && [ "$current_image" != "None" ]; then
+              printf '%s' "${current_image##*:}"
+            else
+              printf '%s' 'latest'
             fi
-          fi
-          LLM_PROCESSOR_IMAGE_TAG="${LLM_PROCESSOR_IMAGE_TAG:-latest}"
+          }
+
+          BACKEND_IMAGE_TAG="$(resolve_image_tag "$INPUT_BACKEND_IMAGE_TAG" finance-app-backend)"
+          FRONTEND_IMAGE_TAG="$(resolve_image_tag "$INPUT_FRONTEND_IMAGE_TAG" finance-app-frontend)"
+          LLM_PROCESSOR_IMAGE_TAG="$(resolve_image_tag "$INPUT_LLM_PROCESSOR_IMAGE_TAG" finance-app-llmprocessor)"
+          GATEWAY_IMAGE_TAG="$(resolve_image_tag "$INPUT_GATEWAY_IMAGE_TAG" finance-app-gateway)"
+          echo "Deploying backend image tag: $BACKEND_IMAGE_TAG"
+          echo "Deploying frontend image tag: $FRONTEND_IMAGE_TAG"
+          echo "Deploying LLM processor image tag: $LLM_PROCESSOR_IMAGE_TAG"
+          echo "Deploying gateway image tag: $GATEWAY_IMAGE_TAG"
+          echo "backendImageTag=$BACKEND_IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "frontendImageTag=$FRONTEND_IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "llmProcessorImageTag=$LLM_PROCESSOR_IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "gatewayImageTag=$GATEWAY_IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
           az deployment group create \
             --resource-group "$AZURE_RESOURCE_GROUP" \
@@ -111,10 +134,10 @@ jobs:
             --mode Incremental \
             --parameters \
               ./main.production.bicepparam \
-              "backendImageTag=${{ github.event.inputs.backendImageTag || 'latest' }}" \
-              "frontendImageTag=${{ github.event.inputs.frontendImageTag || 'latest' }}" \
+              "backendImageTag=$BACKEND_IMAGE_TAG" \
+              "frontendImageTag=$FRONTEND_IMAGE_TAG" \
               "llmProcessorImageTag=$LLM_PROCESSOR_IMAGE_TAG" \
-              "gatewayImageTag=${{ github.event.inputs.gatewayImageTag || 'latest' }}" \
+              "gatewayImageTag=$GATEWAY_IMAGE_TAG" \
               "createGatewayCertificate=${{ steps.check-cert.outputs.createCert }}" \
               "revisionSuffix=${{ github.run_number }}" \
               "environment=production" \
@@ -190,7 +213,7 @@ jobs:
             --mode Incremental \
             --parameters \
               ./cert-binding.production.bicepparam \
-              "gatewayImageTag=${{ github.event.inputs.gatewayImageTag || 'latest' }}" \
+              "gatewayImageTag=${{ needs.deploy.outputs.gatewayImageTag }}" \
             --output none
 
       - name: Display Cert Binding Stage Outputs
