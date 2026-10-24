@@ -7,6 +7,8 @@ param registryUsername string
 param imageTag string
 param revisionSuffix string
 param rabbitMqHost string
+param azureOpenAiEndpoint string
+param azureOpenAiDeploymentName string
 param keyVaultUri string
 param identityClientId string
 param tags object
@@ -77,6 +79,14 @@ resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
             {
               name: 'KEY_VAULT_URI'
               value: keyVaultUri
+            }
+            {
+              name: 'AZURE_OPENAI_ENDPOINT'
+              value: azureOpenAiEndpoint
+            }
+            {
+              name: 'AZURE_OPENAI_DEPLOYMENT_NAME'
+              value: azureOpenAiDeploymentName
             }
             {
               name: 'AZURE_CLIENT_ID'

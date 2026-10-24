@@ -20,6 +20,8 @@ param backendImageTag string
 param frontendImageTag string
 param llmProcessorImageTag string
 param gatewayImageTag string
+param azureOpenAiEndpoint string
+param azureOpenAiDeploymentName string
 param gatewayCustomDomain string
 param certificateName string
 param createGatewayCertificate bool
@@ -198,6 +200,8 @@ module llmProcessor './modules/llm-processor.bicep' = {
     revisionSuffix: revisionSuffix
     rabbitMqHost: serviceNames.rabbitMq
     keyVaultUri: keyVault.properties.vaultUri
+    azureOpenAiEndpoint: azureOpenAiEndpoint
+    azureOpenAiDeploymentName: azureOpenAiDeploymentName
     identityClientId: secretsIdentity.properties.clientId
     tags: union(tags, {
       Component: 'AI'

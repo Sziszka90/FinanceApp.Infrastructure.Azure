@@ -89,7 +89,21 @@ jobs:
           fi
 
       - name: Deploy Template
+        env:
+          LLM_PROCESSOR_IMAGE_TAG: ${{ github.event.inputs.llmProcessorImageTag }}
         run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            CURRENT_LLM_IMAGE="$(az containerapp show \
+              --name finance-app-llmprocessor \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --query 'properties.template.containers[0].image' \
+              --output tsv 2>/dev/null || true)"
+            if [ -n "$CURRENT_LLM_IMAGE" ]; then
+              LLM_PROCESSOR_IMAGE_TAG="${CURRENT_LLM_IMAGE##*:}"
+            fi
+          fi
+          LLM_PROCESSOR_IMAGE_TAG="${LLM_PROCESSOR_IMAGE_TAG:-latest}"
+
           az deployment group create \
             --resource-group "$AZURE_RESOURCE_GROUP" \
             --name "deploy-${{ github.run_number }}" \
@@ -99,7 +113,7 @@ jobs:
               ./main.production.bicepparam \
               "backendImageTag=${{ github.event.inputs.backendImageTag || 'latest' }}" \
               "frontendImageTag=${{ github.event.inputs.frontendImageTag || 'latest' }}" \
-              "llmProcessorImageTag=${{ github.event.inputs.llmProcessorImageTag || 'latest' }}" \
+              "llmProcessorImageTag=$LLM_PROCESSOR_IMAGE_TAG" \
               "gatewayImageTag=${{ github.event.inputs.gatewayImageTag || 'latest' }}" \
               "createGatewayCertificate=${{ steps.check-cert.outputs.createCert }}" \
               "revisionSuffix=${{ github.run_number }}" \

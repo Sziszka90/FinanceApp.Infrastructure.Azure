@@ -89,7 +89,7 @@ The current production registry username is `sziszka90`; update it in both param
 
 The configured Key Vault is `finance-app-key-vault` (`https://finance-app-key-vault.vault.azure.net/`). Bicep derives the vault URI from the existing Key Vault resource, so the URL is not passed as a separate parameter.
 
-Service repositories own fixed non-secret application settings such as authentication issuer/audience, SMTP configuration, exchange-rate API URLs, RabbitMQ user and vhost, and MCP configuration. Those applications load the values from their packaged configuration; this infrastructure workflow does not pass them as environment variables.
+Service repositories own fixed non-secret application settings such as authentication issuer/audience, SMTP configuration, exchange-rate API URLs, RabbitMQ user and vhost, and MCP configuration. The production Azure OpenAI endpoint and deployment name are passed to the LLM Processor as Container App environment variables from `main.production.bicepparam`.
 
 The following versionless Key Vault secrets are read by Container Apps through the shared `finance-app-secrets` managed identity:
 
