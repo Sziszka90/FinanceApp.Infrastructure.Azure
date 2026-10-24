@@ -89,7 +89,7 @@ The current production registry username is `sziszka90`; update it in both param
 
 The configured Key Vault is `finance-app-key-vault` (`https://finance-app-key-vault.vault.azure.net/`). Bicep derives the vault URI from the existing Key Vault resource, so the URL is not passed as a separate parameter.
 
-Service repositories own fixed non-secret application settings such as authentication issuer/audience, SMTP configuration, exchange-rate API URLs, RabbitMQ user and vhost, and MCP configuration. The production Azure OpenAI endpoint and deployment name are passed to the LLM Processor as Container App environment variables from `main.production.bicepparam`.
+Each service repository owns its non-secret application settings in its runtime configuration files: Backend appsettings files and the LLM Processor's tracked `.env.production`. This includes service endpoints, Azure OpenAI deployment settings, and RabbitMQ host, port, and username. Bicep does not duplicate these values in Container App environment settings.
 
 The following versionless Key Vault secrets are read by Container Apps through the shared `finance-app-secrets` managed identity:
 
@@ -109,7 +109,7 @@ Gateway routing values are not secrets and are not GitHub Actions inputs. The ga
 
 The GitHub Actions OIDC identity must be allowed to create role assignments on the Key Vault and must have the `Microsoft.KeyVault/vaults/deploy/action` permission on the Key Vault or resource group. **Contributor** or **Owner** includes this deployment action; a least-privilege custom role containing only this action is also suitable. The workflow enables Key Vault template deployment access and sets the required `AzureServices` network ACL bypass before running the Bicep deployment. The template separately grants the Container Apps identity the **Key Vault Secrets User** role for runtime secret reads. The SQL module reads `sql-admin-login` and `sql-admin-password` during deployment, while the Redis container reads `redis-password` at runtime.
 
-The LLM Processor and Backend load secrets directly with Azure Identity and Key Vault SDKs. Their Container Apps receive `AZURE_CLIENT_ID` from Bicep, which selects the `finance-app-secrets` user-assigned identity. The LLM Processor also receives `KEY_VAULT_URI`; the Backend obtains its vault URI from its application configuration. This explicit client ID is required when using a user-assigned identity with `DefaultAzureCredential`.
+The LLM Processor and Backend load secrets directly with Azure Identity and Key Vault SDKs. Their Container Apps receive only `AZURE_CLIENT_ID` from Bicep, which selects the `finance-app-secrets` user-assigned identity. Each service gets its Key Vault URI from its tracked runtime configuration. This explicit client ID is required when using a user-assigned identity with `DefaultAzureCredential`.
 
 ### SQL Network Access
 

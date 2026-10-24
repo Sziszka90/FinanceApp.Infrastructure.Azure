@@ -6,11 +6,9 @@ param registryServer string
 param registryUsername string
 param imageTag string
 param revisionSuffix string
-param rabbitMqHost string
-param llmProcessorUrl string
 param identityClientId string
 param tags object
-param keyVaultUris object
+param registryPasswordSecretUrl string
 
 resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
   name: name
@@ -42,42 +40,7 @@ resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
       secrets: [
         {
           name: 'registry-password'
-          keyVaultUrl: keyVaultUris.registryPassword
-          identity: identityId
-        }
-        {
-          name: 'openai-api-key'
-          keyVaultUrl: keyVaultUris.openAiApiKey
-          identity: identityId
-        }
-        {
-          name: 'auth-secret-key'
-          keyVaultUrl: keyVaultUris.authSecretKey
-          identity: identityId
-        }
-        {
-          name: 'smtp-password'
-          keyVaultUrl: keyVaultUris.smtpPassword
-          identity: identityId
-        }
-        {
-          name: 'rabbitmq-password'
-          keyVaultUrl: keyVaultUris.rabbitMqPassword
-          identity: identityId
-        }
-        {
-          name: 'llm-processor-api-token'
-          keyVaultUrl: keyVaultUris.llmProcessorApiToken
-          identity: identityId
-        }
-        {
-          name: 'cache-connection-string'
-          keyVaultUrl: keyVaultUris.cacheConnectionString
-          identity: identityId
-        }
-        {
-          name: 'finance-app-db-connection-string'
-          keyVaultUrl: keyVaultUris.financeAppDbConnectionString
+          keyVaultUrl: registryPasswordSecretUrl
           identity: identityId
         }
       ]
@@ -92,46 +55,6 @@ resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
             {
               name: 'AZURE_CLIENT_ID'
               value: identityClientId
-            }
-            {
-              name: 'ConnectionStrings__MsSql'
-              secretRef: 'finance-app-db-connection-string'
-            }
-            {
-              name: 'CacheSettings__ConnectionString'
-              secretRef: 'cache-connection-string'
-            }
-            {
-              name: 'LLMClientSettings__ApiKey'
-              secretRef: 'openai-api-key'
-            }
-            {
-              name: 'AuthenticationSettings__SecretKey'
-              secretRef: 'auth-secret-key'
-            }
-            {
-              name: 'SmtpSettings__SmtpPass'
-              secretRef: 'smtp-password'
-            }
-            {
-              name: 'RabbitMqSettings__HostName'
-              value: rabbitMqHost
-            }
-            {
-              name: 'RabbitMqSettings__Port'
-              value: '5672'
-            }
-            {
-              name: 'RabbitMqSettings__Password'
-              secretRef: 'rabbitmq-password'
-            }
-            {
-              name: 'LLMProcessorSettings__Token'
-              secretRef: 'llm-processor-api-token'
-            }
-            {
-              name: 'LLMProcessorSettings__ApiUrl'
-              value: llmProcessorUrl
             }
           ]
           resources: {

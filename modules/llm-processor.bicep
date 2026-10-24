@@ -6,13 +6,9 @@ param registryServer string
 param registryUsername string
 param imageTag string
 param revisionSuffix string
-param rabbitMqHost string
-param azureOpenAiEndpoint string
-param azureOpenAiDeploymentName string
-param keyVaultUri string
 param identityClientId string
 param tags object
-param keyVaultUris object
+param registryPasswordSecretUrl string
 
 resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
   name: name
@@ -44,27 +40,7 @@ resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
       secrets: [
         {
           name: 'registry-password'
-          keyVaultUrl: keyVaultUris.registryPassword
-          identity: identityId
-        }
-        {
-          name: 'llm-processor-api-token'
-          keyVaultUrl: keyVaultUris.llmProcessorApiToken
-          identity: identityId
-        }
-        {
-          name: 'openai-api-key'
-          keyVaultUrl: keyVaultUris.openAiApiKey
-          identity: identityId
-        }
-        {
-          name: 'rabbitmq-password'
-          keyVaultUrl: keyVaultUris.rabbitMqPassword
-          identity: identityId
-        }
-        {
-          name: 'finance-app-db-connection-string'
-          keyVaultUrl: keyVaultUris.financeAppDbConnectionString
+          keyVaultUrl: registryPasswordSecretUrl
           identity: identityId
         }
       ]
@@ -77,44 +53,8 @@ resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
           image: '${registryServer}/${registryUsername}/${name}:${imageTag}'
           env: [
             {
-              name: 'KEY_VAULT_URI'
-              value: keyVaultUri
-            }
-            {
-              name: 'AZURE_OPENAI_ENDPOINT'
-              value: azureOpenAiEndpoint
-            }
-            {
-              name: 'AZURE_OPENAI_DEPLOYMENT_NAME'
-              value: azureOpenAiDeploymentName
-            }
-            {
               name: 'AZURE_CLIENT_ID'
               value: identityClientId
-            }
-            {
-              name: 'API_TOKEN'
-              secretRef: 'llm-processor-api-token'
-            }
-            {
-              name: 'OPENAI_API_KEY'
-              secretRef: 'openai-api-key'
-            }
-            {
-              name: 'CONNECTION_STRING'
-              secretRef: 'finance-app-db-connection-string'
-            }
-            {
-              name: 'RABBITMQ_HOST'
-              value: rabbitMqHost
-            }
-            {
-              name: 'RABBITMQ_PORT'
-              value: '5672'
-            }
-            {
-              name: 'RABBITMQ_PASS'
-              secretRef: 'rabbitmq-password'
             }
           ]
           resources: {
