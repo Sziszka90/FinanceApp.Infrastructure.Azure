@@ -58,9 +58,9 @@ resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
         }
       ]
       scale: {
-        minReplicas: 2
+        minReplicas: 0
         maxReplicas: 10
-        cooldownPeriod: 900
+        cooldownPeriod: 300
         pollingInterval: 30
         rules: [
           {
