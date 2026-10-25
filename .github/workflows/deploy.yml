@@ -18,6 +18,9 @@ on:
       gatewayImageTag:
         description: "Gateway image tag"
         required: false
+      backendRef:
+        description: "FinanceApp.Backend git ref containing the migrations to apply"
+        required: false
 
 permissions:
   id-token: write
@@ -66,6 +69,39 @@ jobs:
             --enabled-for-template-deployment true \
             --bypass AzureServices \
             --output none
+
+      - name: Checkout Backend migrations
+        uses: actions/checkout@v6
+        with:
+          repository: Sziszka90/FinanceApp.Backend
+          ref: ${{ github.event.inputs.backendRef || 'main' }}
+          token: ${{ secrets.GHCR_PAT }}
+          path: backend
+
+      - name: Setup .NET for database migrations
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.401"
+          skip-lts-prepass: true
+
+      - name: Apply database migrations
+        env:
+          KEY_VAULT_NAME: ${{ steps.deployment-config.outputs.keyVaultName }}
+        run: |
+          CONNECTION_STRING="$(az keyvault secret show \
+            --vault-name "$KEY_VAULT_NAME" \
+            --name finance-app-db-connection-string \
+            --query value \
+            --output tsv)"
+          if [ -z "$CONNECTION_STRING" ]; then
+            echo "Database connection string secret is empty or unavailable."
+            exit 1
+          fi
+          echo "::add-mask::$CONNECTION_STRING"
+          dotnet tool install --global dotnet-ef --version 10.0.10
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          cd backend
+          ./scripts/run-migration.sh mssql "$CONNECTION_STRING"
 
       - name: Check Certificate Existence
         id: check-cert
