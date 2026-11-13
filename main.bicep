@@ -3,7 +3,7 @@
 type ServiceNames = {
   cache: string
   rabbitMq: string
-  llmProcessor: string
+  aiAnalytics: string
   backend: string
   frontend: string
   gateway: string
@@ -18,7 +18,7 @@ param rabbitMqUsername string
 param revisionSuffix string = utcNow('yyyyMMddHHmmss')
 param backendImageTag string
 param frontendImageTag string
-param llmProcessorImageTag string
+param aiAnalyticsImageTag string
 param gatewayImageTag string
 param gatewayCustomDomain string
 param certificateName string
@@ -138,7 +138,7 @@ var secretUrls = {
   authSecretKey: '${keyVault.properties.vaultUri}secrets/auth-secret-key'
   cacheConnectionString: '${keyVault.properties.vaultUri}secrets/cache-connection-string'
   financeAppDbConnectionString: '${keyVault.properties.vaultUri}secrets/finance-app-db-connection-string'
-  llmProcessorApiToken: '${keyVault.properties.vaultUri}secrets/llm-processor-api-token'
+  aiAnalyticsApiToken: '${keyVault.properties.vaultUri}secrets/ai-analytics-api-token'
   openAiApiKey: '${keyVault.properties.vaultUri}secrets/openai-api-key'
   rabbitMqPassword: '${keyVault.properties.vaultUri}secrets/rabbitmq-password'
   registryPassword: '${keyVault.properties.vaultUri}secrets/registry-password'
@@ -183,23 +183,23 @@ module rabbitMq './modules/rabbitmq.bicep' = {
   }
 }
 
-module llmProcessor './modules/llm-processor.bicep' = {
+module aiAnalytics './modules/ai-analytics.bicep' = {
   dependsOn: [
     keyVaultSecretsRoleAssignment
   ]
   params: {
     location: location
-    name: serviceNames.llmProcessor
+    name: serviceNames.aiAnalytics
     managedEnvironmentId: managedEnvironment.id
     identityId: secretsIdentity.id
     registryServer: containerRegistryServer
     registryUsername: containerRegistryUsername
-    imageTag: llmProcessorImageTag
+    imageTag: aiAnalyticsImageTag
     revisionSuffix: revisionSuffix
     identityClientId: secretsIdentity.properties.clientId
     tags: union(tags, {
       Component: 'AI'
-      Service: serviceNames.llmProcessor
+      Service: serviceNames.aiAnalytics
     })
     registryPasswordSecretUrl: secretUrls.registryPassword
   }
@@ -269,8 +269,8 @@ module gateway './modules/gateway.bicep' = {
     customDomains: gatewayCustomDomains
     routingEnvironment: [
       {
-        name: 'LLM_PROCESSOR_URL'
-        value: 'https://${llmProcessor.outputs.fqdn}'
+        name: 'AI_ANALYTICS_URL'
+        value: 'https://${aiAnalytics.outputs.fqdn}'
       }
       {
         name: 'BACKEND_URL'
@@ -307,6 +307,6 @@ output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.id
 output backendUrl string = backend.outputs.fqdn
 output frontendUrl string = frontend.outputs.fqdn
 output gatewayUrl string = gateway.outputs.fqdn
-output llmProcessorUrl string = llmProcessor.outputs.fqdn
+output aiAnalyticsUrl string = aiAnalytics.outputs.fqdn
 output cacheUrl string = cache.outputs.fqdn
 output rabbitMqUrl string = rabbitMq.outputs.fqdn

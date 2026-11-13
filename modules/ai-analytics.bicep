@@ -49,7 +49,7 @@ resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
       revisionSuffix: revisionSuffix
       containers: [
         {
-          name: 'llmprocessor'
+          name: 'aianalytics'
           image: '${registryServer}/${registryUsername}/${name}:${imageTag}'
           env: [
             {

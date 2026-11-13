@@ -40,8 +40,8 @@ param backendName string
 @description('Name of the frontend Container App')
 param frontendName string
 
-@description('Name of the LLM Processor Container App')
-param llmProcessorName string
+@description('Name of the AI Analytics Container App')
+param aiAnalyticsName string
 
 @description('Project tag value')
 param projectName string
@@ -93,14 +93,14 @@ resource frontend 'Microsoft.App/containerApps@2025-10-02-preview' existing = {
   name: frontendName
 }
 
-resource llmProcessor 'Microsoft.App/containerApps@2025-10-02-preview' existing = {
-  name: llmProcessorName
+resource aiAnalytics 'Microsoft.App/containerApps@2025-10-02-preview' existing = {
+  name: aiAnalyticsName
 }
 
 var gatewayRoutingEnvironment = [
   {
-    name: 'LLM_PROCESSOR_URL'
-    value: 'https://${llmProcessor.properties.configuration.ingress.fqdn}'
+    name: 'AI_ANALYTICS_URL'
+    value: 'https://${aiAnalytics.properties.configuration.ingress.fqdn}'
   }
   {
     name: 'BACKEND_URL'

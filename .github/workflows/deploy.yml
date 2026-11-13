@@ -12,8 +12,8 @@ on:
       frontendImageTag:
         description: "Frontend image tag"
         required: false
-      llmProcessorImageTag:
-        description: "LLM Processor image tag"
+      aiAnalyticsImageTag:
+        description: "AI Analytics image tag"
         required: false
       gatewayImageTag:
         description: "Gateway image tag"
@@ -126,7 +126,7 @@ jobs:
         env:
           INPUT_BACKEND_IMAGE_TAG: ${{ github.event.inputs.backendImageTag }}
           INPUT_FRONTEND_IMAGE_TAG: ${{ github.event.inputs.frontendImageTag }}
-          INPUT_LLM_PROCESSOR_IMAGE_TAG: ${{ github.event.inputs.llmProcessorImageTag }}
+          INPUT_AI_ANALYTICS_IMAGE_TAG: ${{ github.event.inputs.aiAnalyticsImageTag }}
           INPUT_GATEWAY_IMAGE_TAG: ${{ github.event.inputs.gatewayImageTag }}
         run: |
           resolve_image_tag() {
@@ -152,15 +152,15 @@ jobs:
 
           BACKEND_IMAGE_TAG="$(resolve_image_tag "$INPUT_BACKEND_IMAGE_TAG" finance-app-backend)"
           FRONTEND_IMAGE_TAG="$(resolve_image_tag "$INPUT_FRONTEND_IMAGE_TAG" finance-app-frontend)"
-          LLM_PROCESSOR_IMAGE_TAG="$(resolve_image_tag "$INPUT_LLM_PROCESSOR_IMAGE_TAG" finance-app-llmprocessor)"
+          AI_ANALYTICS_IMAGE_TAG="$(resolve_image_tag "$INPUT_AI_ANALYTICS_IMAGE_TAG" finance-app-aianalytics)"
           GATEWAY_IMAGE_TAG="$(resolve_image_tag "$INPUT_GATEWAY_IMAGE_TAG" finance-app-gateway)"
           echo "Deploying backend image tag: $BACKEND_IMAGE_TAG"
           echo "Deploying frontend image tag: $FRONTEND_IMAGE_TAG"
-          echo "Deploying LLM processor image tag: $LLM_PROCESSOR_IMAGE_TAG"
+          echo "Deploying AI analytics image tag: $AI_ANALYTICS_IMAGE_TAG"
           echo "Deploying gateway image tag: $GATEWAY_IMAGE_TAG"
           echo "backendImageTag=$BACKEND_IMAGE_TAG" >> "$GITHUB_OUTPUT"
           echo "frontendImageTag=$FRONTEND_IMAGE_TAG" >> "$GITHUB_OUTPUT"
-          echo "llmProcessorImageTag=$LLM_PROCESSOR_IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "aiAnalyticsImageTag=$AI_ANALYTICS_IMAGE_TAG" >> "$GITHUB_OUTPUT"
           echo "gatewayImageTag=$GATEWAY_IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
           az deployment group create \
@@ -172,7 +172,7 @@ jobs:
               ./main.production.bicepparam \
               "backendImageTag=$BACKEND_IMAGE_TAG" \
               "frontendImageTag=$FRONTEND_IMAGE_TAG" \
-              "llmProcessorImageTag=$LLM_PROCESSOR_IMAGE_TAG" \
+              "aiAnalyticsImageTag=$AI_ANALYTICS_IMAGE_TAG" \
               "gatewayImageTag=$GATEWAY_IMAGE_TAG" \
               "createGatewayCertificate=${{ steps.check-cert.outputs.createCert }}" \
               "revisionSuffix=${{ github.run_number }}" \
@@ -195,7 +195,7 @@ jobs:
           echo "Frontend: https://$(cat deployment-outputs.json | jq -r '.frontendUrl.value')"
           echo "Gateway: https://$(cat deployment-outputs.json | jq -r '.gatewayUrl.value')"
           echo "Backend: http://$(cat deployment-outputs.json | jq -r '.backendUrl.value')"
-          echo "LLM Processor: http://$(cat deployment-outputs.json | jq -r '.llmProcessorUrl.value')"
+          echo "AI Analytics: http://$(cat deployment-outputs.json | jq -r '.aiAnalyticsUrl.value')"
 
           echo ""
           echo "💾 Infrastructure:"

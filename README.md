@@ -19,7 +19,7 @@ When you deploy this template, Azure will create the following resources:
 
 2. **Frontend** - Web UI
 
-3. **LLM Processor** - AI/ML processing service
+3. **AI Analytics** - AI/ML processing service
 
 4. **Gateway** - API Gateway/Reverse Proxy
 
@@ -36,7 +36,7 @@ Scaling rules match the protocol used by each service:
 | Redis         | Internal TCP `6379`  | TCP concurrent connections |
 | RabbitMQ      | Internal TCP `5672`  | TCP concurrent connections |
 | Backend       | Internal HTTP `8080` | HTTP concurrent requests   |
-| LLM Processor | Internal HTTP `8000` | HTTP concurrent requests   |
+| AI Analytics | Internal HTTP `8000` | HTTP concurrent requests   |
 | Frontend      | External HTTP `80`   | HTTP concurrent requests   |
 | Gateway       | External HTTP `80`   | HTTP concurrent requests   |
 
@@ -58,7 +58,7 @@ This infrastructure repo is designed to work with separate service repositories:
 
 - **Backend repo** - Builds and publishes backend container image
 - **Frontend repo** - Builds and publishes frontend container image
-- **LLM Processor repo** - Builds and publishes LLM processor container image
+- **AI Analytics repo** - Builds and publishes AI analytics container image
 - **Gateway repo** - Builds and publishes gateway container image
 - **Infrastructure repo** (this repo) - Deploys infrastructure with specified image tags
 
@@ -89,14 +89,14 @@ The current production registry username is `sziszka90`; update it in both param
 
 The configured Key Vault is `finance-app-key-vault` (`https://finance-app-key-vault.vault.azure.net/`). Bicep derives the vault URI from the existing Key Vault resource, so the URL is not passed as a separate parameter.
 
-Each service repository owns its non-secret application settings in its runtime configuration files: Backend appsettings files and the LLM Processor's tracked `.env.production`. This includes service endpoints, Azure OpenAI deployment settings, and RabbitMQ host, port, and username. Bicep does not duplicate these values in Container App environment settings.
+Each service repository owns its non-secret application settings in its runtime configuration files: Backend appsettings files and the AI Analytics service's tracked `.env.production`. This includes service endpoints, Azure OpenAI deployment settings, and RabbitMQ host, port, and username. Bicep does not duplicate these values in Container App environment settings.
 
 The following versionless Key Vault secrets are read by Container Apps through the shared `finance-app-secrets` managed identity:
 
 - `auth-secret-key`
 - `cache-connection-string`
 - `finance-app-db-connection-string`
-- `llm-processor-api-token`
+- `ai-analytics-api-token`
 - `openai-api-key`
 - `rabbitmq-password`
 - `registry-password`
@@ -105,11 +105,11 @@ The following versionless Key Vault secrets are read by Container Apps through t
 - `sql-admin-login`
 - `smtp-password`
 
-Gateway routing values are not secrets and are not GitHub Actions inputs. The gateway receives `LLM_PROCESSOR_URL`, `BACKEND_URL`, and `FRONTEND_URL` from the `gatewayRoutingEnvironment` variable in the Bicep templates. Those values are derived from the deployed Container App FQDNs, so they stay correct across deployments without maintaining a separate `.env` file.
+Gateway routing values are not secrets and are not GitHub Actions inputs. The gateway receives `AI_ANALYTICS_URL`, `BACKEND_URL`, and `FRONTEND_URL` from the `gatewayRoutingEnvironment` variable in the Bicep templates. Those values are derived from the deployed Container App FQDNs, so they stay correct across deployments without maintaining a separate `.env` file.
 
 The GitHub Actions OIDC identity must be allowed to create role assignments on the Key Vault and must have the `Microsoft.KeyVault/vaults/deploy/action` permission on the Key Vault or resource group. **Contributor** or **Owner** includes this deployment action; a least-privilege custom role containing only this action is also suitable. The workflow enables Key Vault template deployment access and sets the required `AzureServices` network ACL bypass before running the Bicep deployment. The template separately grants the Container Apps identity the **Key Vault Secrets User** role for runtime secret reads. The SQL module reads `sql-admin-login` and `sql-admin-password` during deployment, while the Redis container reads `redis-password` at runtime.
 
-The LLM Processor and Backend load secrets directly with Azure Identity and Key Vault SDKs. Their Container Apps receive only `AZURE_CLIENT_ID` from Bicep, which selects the `finance-app-secrets` user-assigned identity. Each service gets its Key Vault URI from its tracked runtime configuration. This explicit client ID is required when using a user-assigned identity with `DefaultAzureCredential`.
+The AI Analytics and Backend load secrets directly with Azure Identity and Key Vault SDKs. Their Container Apps receive only `AZURE_CLIENT_ID` from Bicep, which selects the `finance-app-secrets` user-assigned identity. Each service gets its Key Vault URI from its tracked runtime configuration. This explicit client ID is required when using a user-assigned identity with `DefaultAzureCredential`.
 
 ### SQL Network Access
 
@@ -124,7 +124,7 @@ The LLM Processor and Backend load secrets directly with Azure Identity and Key 
 3. Specify image tags (or use defaults):
    - Backend image tag (default: `latest`)
    - Frontend image tag (default: `latest`)
-   - LLM Processor image tag (default: `latest`)
+   - AI Analytics image tag (default: `latest`)
    - Gateway image tag (default: `latest`)
 4. Click **Run workflow**
 
