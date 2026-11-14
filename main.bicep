@@ -197,6 +197,8 @@ module aiAnalytics './modules/ai-analytics.bicep' = {
     imageTag: aiAnalyticsImageTag
     revisionSuffix: revisionSuffix
     identityClientId: secretsIdentity.properties.clientId
+    mcpApiBaseUrl: 'https://${backend.outputs.fqdn}/api/v1/mcp'
+    frontendOrigin: 'https://${frontend.outputs.fqdn}'
     tags: union(tags, {
       Component: 'AI'
       Service: serviceNames.aiAnalytics

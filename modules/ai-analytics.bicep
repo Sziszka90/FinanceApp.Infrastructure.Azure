@@ -7,6 +7,8 @@ param registryUsername string
 param imageTag string
 param revisionSuffix string
 param identityClientId string
+param mcpApiBaseUrl string
+param frontendOrigin string
 param tags object
 param registryPasswordSecretUrl string
 
@@ -55,6 +57,14 @@ resource app 'Microsoft.App/containerApps@2025-10-02-preview' = {
             {
               name: 'AZURE_CLIENT_ID'
               value: identityClientId
+            }
+            {
+              name: 'MCP_API_BASE_URL'
+              value: mcpApiBaseUrl
+            }
+            {
+              name: 'CORS_ALLOWED_ORIGINS'
+              value: frontendOrigin
             }
           ]
           resources: {
