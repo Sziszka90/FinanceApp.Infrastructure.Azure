@@ -64,6 +64,20 @@ This infrastructure repo is designed to work with separate service repositories:
 
 Each service repo builds and tags images independently. This infrastructure deployment workflow accepts image tags as inputs to deploy specific versions.
 
+### Monthly analytics MCP flow
+
+AI Analytics receives `MCP_API_BASE_URL` from Bicep, pointing to the backend's internal HTTPS MCP endpoint. The authenticated frontend calls the backend's monthly-insights route; the backend calls the internal AI Analytics service and forwards the user's access token. AI Analytics uses that token for the backend's read-only MCP tools, keeping transaction data scoped to the signed-in user.
+
+```mermaid
+flowchart LR
+    Frontend[Angular frontend] -->|Authenticated insights request| Backend[Backend API]
+    Backend -->|Service token and user token| AI[AI Analytics]
+    AI -->|MCP over internal HTTPS with user token| Backend
+    AI --> OpenAI[Azure OpenAI]
+    AI -->|Insight cards| Backend
+    Backend --> Frontend
+```
+
 ## 🔐 GitHub Actions Configuration
 
 Configure these secrets in your GitHub repository before deployment:
